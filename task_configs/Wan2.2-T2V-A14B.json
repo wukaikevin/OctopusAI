@@ -1,0 +1,118 @@
+{
+  "app_id": "Wan2.2-T2V-A14B",
+  "name": "文字生成视频-Wan2.2-T2V-A14B",
+  "description": "基于Wan2.2-T2V-A14B模型的文字生成视频工具，支持根据用户输入的提示词生成高质量的视频内容。用户可以自定义视频分辨率，以满足不同的创作需求。算力要求：H100-80G或等效算力以上，支持多卡加速计算。",
+  "author": "Kevin Wu",
+  "homepage": "https://github.com/wukaikevin",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "提示词（每行提示词一个片段，多行多片段，每个片段最多5秒）",
+      "field_name": "prompt",
+      "type": "textarea",
+      "default_value": "史诗感电影镜头，俯瞰未来都市夜景，数百万流动的光点如神经网络闪烁，中心塔楼逐渐汇聚成一张朦胧的发光人脸，霓虹与数据流在玻璃幕墙上滚动，赛博朋克风格，蓝紫主色调，光影对比强烈，细节精致，动态平滑。\n延续上一场景的光影风格，镜头推进至塔楼表面，光点化作纤细的数据丝线从建筑中飘出，连接街道上行人的智能眼镜与手持设备，形成发光的纽带网络，人们的瞳孔中映出相同的数字符号，充满静谧的神圣感。\n白天场景，同一城市转为温暖的金绿色调，数据丝线已变为半透明的光合藤蔓缠绕建筑，人类与AI全息体在公园中协同创作艺术，孩童与发光小兽嬉戏，柔和自然光与数字粒子交融，充满希望与和谐的氛围。",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "视频尺寸",
+      "field_name": "resolution",
+      "type": "select",
+      "default_value": "480*832",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "竖板-480P (480*832)", "value": "480*832" },
+        { "label": "竖板-720P (720*1280)", "value": "720*1280" },
+        { "label": "横板-480P (832*480)", "value": "832*480" },
+        { "label": "横板-720P (1280*720)", "value": "1280*720" }
+      ]
+    },
+    {
+      "label": "融合音频（如果音频的时长超过视频，那么音频将被截断。反之视频时长超过音频，则视频将被截断。合成的视频时长取两者中最短的一方时间。）",
+      "field_name": "audio",
+      "type": "file",
+      "file_extensions": [
+        "mp4",
+        "mp3",
+        "wav"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": false
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/Wan2.2-T2V-A14B"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/Wan2.2-T2V-A14B_results",
+  "model_path": "$HOME/.cache/Wan2.2-T2V-A14B-BF16",
+  "installs": [
+    {
+      "env_name": "Wan2.2-T2V-A14B",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "mkdir -p {model_path}",
+        "export TORCH_CUDA_ARCH_LIST=\"6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0\" && export FORCE_CUDA=1 && export MAX_JOBS=4",
+        "apt-get install sox libsox-dev libgl1 unzip ffmpeg libx264-dev -y",
+        "conda install pytorch=2.9.* torchvision ffmpeg=7.1.1 -c conda-forge -c pytorch -y",
+        "pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.1/flash_attn-2.8.1+cu12torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+        "git clone https://github.com/Wan-Video/Wan2.2.git {work_dir}",
+        "cd {work_dir}",
+        "grep -v \"flash_attn\" requirements.txt > requirements_base.txt",
+        "pip install -r requirements_base.txt",
+        "pip install -r requirements_s2v.txt",
+        "pip install onnxruntime-gpu",
+        "pip install opencv-python moviepy imageio[ffmpeg] imageio-ffmpeg numpy pillow",
+        "pip install --upgrade transformers peft diffusers",
+        "pip install huggingface_hub[cli]"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "Wan2.2-T2V-A14B",
+      "commands":[
+        "hf download Wan-AI/Wan2.2-T2V-A14B-BF16 --local-dir {model_path}",
+        "#modelscope download Wan-AI/Wan2.2-T2V-A14B-BF16 --local_dir {model_path}"
+      ]
+    },
+    {
+      "name": "视频生成",
+      "env_name": "Wan2.2-T2V-A14B",
+      "commands": [
+        "rm -rf {server_output_dir}/*",
+        "cd {work_dir}",
+        "cp /tmp/generate-t2v.py {work_dir}/generate.py",
+        "python -c \"import torch; print(f'PyTorch版本: {torch.__version__}'); print(f'CUDA是否可用: {torch.cuda.is_available()}'); (print(f'CUDA版本: {torch.version.cuda}'), print(f'cuDNN版本: {torch.backends.cudnn.version()}'), print(f'GPU数量: {torch.cuda.device_count()}'), [print(f'GPU {i}: {torch.cuda.get_device_name(i)}') for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else None\"",
+        "export gpu_num=$(python -c \"import torch; print(torch.cuda.device_count())\")",
+        "export TORCH_NCCL_ENABLE_MONITORING=0",
+        "export NCCL_IB_DISABLE=1",
+        "python -c \"import torch;torch.cuda.empty_cache()\"",
+        "torchrun --nproc_per_node=$gpu_num generate.py --task t2v-A14B --size {resolution} --ckpt_dir {model_path} $([ \"$gpu_num\" -gt 1 ] && echo \"--dit_fsdp --t5_fsdp\") --ulysses_size $gpu_num --prompt \"{prompt}\" --offload_model True --convert_model_dtype --multi_prompt --save_file {server_output_dir}/video_only.mp4"
+      ]
+    },
+    {
+      "name": "音频融合",
+      "env_name": "Wan2.2-T2V-A14B",
+      "required_inputs": [
+        "audio"
+      ],
+      "commands": [
+        "ffmpeg -i {server_output_dir}/video_only.mp4 -i {audio} -c:v copy -c:a aac -map 0:v -map 1:a -shortest -y {server_output_dir}/video_complate.mp4"
+      ]
+    }
+  ],
+  "uploads":[
+    {
+      "source_path": "Wan2.2-Expand/generate-t2v.py",
+      "server_path": "/tmp/generate-t2v.py"
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}/video_complate.mp4\""
+}

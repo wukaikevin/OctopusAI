@@ -1,0 +1,72 @@
+{
+    "app_id": "video-High-Quality",
+    "name": "视频高清放大",
+    "description": "基于FlashVSR-v1.1模型的视频高清放大工具，采用先进的视频超分辨率技术提升视频分辨率和质量。支持2倍、4倍等多种放大倍数，在保持音频的同时显著提升视频清晰度。需要CUDA编译环境，安装时间较长，建议使用预编译镜像。需要48GB以上显存的高性能GPU支持，适用于视频质量提升、老片修复、内容制作等场景。",
+    "author": "Jiang",
+    "homepage": "",
+    "email": "jiang@gmail.com",
+    "inputs": [
+        {
+            "label": "视频文件",
+            "field_name": "video_file",
+            "type": "file",
+            "default_value": "",
+            "file_extensions": [
+                "mp4"
+            ],
+            "editable": true,
+            "required": true
+        },
+        {
+            "label": "放大倍数",
+            "field_name": "zoom_factor",
+            "type": "number",
+            "default_value": 2,
+            "editable": true,
+            "required": true
+        }
+    ],
+    "variables": {
+        "work_dir": "$HOME/video-High-Quality"
+    },
+    "server_output_file": "/tmp/results/video-High-Quality/output.mp4",
+    "server_output_dir": "",
+    "endpoint":"echo \"{server_output_file}\"",
+    "model_path": "$HOME/.cache/video-High-Quality",
+    "installs": [
+        {
+            "env_name": "video-High-Quality",
+            "python_version": "3.11.14",
+            "cuda_version": "12.8",
+            "commands": [
+                "rm -rf {work_dir}",
+                "apt install ffmpeg -y",
+                "apt install git-lfs -y",
+                "git lfs install",
+                "git clone https://github.com/jiang926/Video-High-Quality.git {work_dir}",
+                "cd {work_dir}",
+                "pip install torch torchvision torchaudio  --index-url https://download.pytorch.org/whl/cu128",
+                "rm -rf requirements.txt",
+                "pip install -e .",
+                "pip install imageio tqdm huggingface_hub modelscope transformers sentencepiece ftfy imageio-ffmpeg",
+                "pip install packaging",
+                "pip install ninja",
+                "pip install {work_dir}/Video-High-Quality/packages/block_sparse_attn-0.0.1-cp311-cp311-linux_x86_64.whl || pip install https://github.com/jiang926/Video-High-Quality/raw/main/packages/block_sparse_attn-0.0.1-cp311-cp311-linux_x86_64.whl",
+                "cd {work_dir}/examples/WanVSR",
+                "rm -rf FlashVSR-v1.1",
+                "git lfs clone https://huggingface.co/JunhaoZhuang/FlashVSR-v1.1"
+            ]
+        }
+    ],
+    "batch": [
+        {
+            "name": "视频高清放大",
+            "env_name": "video-High-Quality",
+            "commands": [
+                "mkdir -p /tmp/results/video-High-Quality",
+                "cd {work_dir}/examples/WanVSR",
+                "python infer_flashvsr_v1.1_tiny_long_video.py --input {video_file} --output {server_output_file} --scale {zoom_factor} --device cuda --keep_audio" 
+            ]
+        }
+    ]
+}

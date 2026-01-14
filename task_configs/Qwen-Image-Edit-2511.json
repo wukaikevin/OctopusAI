@@ -1,0 +1,106 @@
+{
+  "app_id": "Qwen-Image-Edit-2511",
+  "name": "智能图像编辑 - Qwen-Image-Edit-2511",
+  "description": "基于通义千问Qwen-Image-Edit-2511的智能图像编辑模型，采用320亿参数的修正流变换器架构。支持根据自然语言指令进行图像生成、编辑和多图组合。提供推理步数、随机种子、提示词匹配度等多种参数控制，支持负面提示词避免不希望的内容。可精确控制编辑强度，实现高质量图像生成与编辑，适用于创意设计、图像修整、风格转换等场景。",
+  "author": "通义千问",
+  "homepage": "https://www.modelscope.cn/models/Qwen/Qwen-Image-Edit-2511",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "提示词(描述编辑要求)",
+      "field_name": "prompt",
+      "type": "textarea",
+      "default_value": "请将这张图片的背景替换为大海",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "负面提示词(避免出现的内容)",
+      "field_name": "negative_prompt",
+      "type": "text",
+      "default_value": " ",
+      "editable": true,
+      "required": false
+    },
+    {
+      "label": "参考图像(待编辑的原始图片以及参考图片，可多图混用)",
+      "field_name": "input_image",
+      "type": "files",
+      "file_extensions": [
+        "jpg",
+        "jpeg",
+        "png"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "推理步骤(迭代次数，值越大质量越高但速度越慢，建议20-50，过低质量差，过高耗时增加)",
+      "field_name": "num_inference_steps",
+      "type": "number",
+      "default_value": "40",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "随机值(生成种子，相同种子可复现结果，0为随机)",
+      "field_name": "seed",
+      "type": "number",
+      "default_value": "0",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "提示词匹配度(控制编辑强度，值越大越遵循提示词但可能失真，建议3-7，过低编辑效果弱，过高可能破坏原图)",
+      "field_name": "true_cfg_scale",
+      "type": "number",
+      "default_value": "4",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/Qwen-Image-Edit-2511"
+  },
+  "server_output_file": "/tmp/Qwen-Image-Edit-2511_results/result.png",
+  "server_output_dir": "/tmp/Qwen-Image-Edit-2511_results",
+  "model_path": "$HOME/.cache/Qwen-Image-Edit-2511",
+  "installs": [
+    {
+      "env_name": "Qwen-Image-Edit-2511",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+          "rm -rf {work_dir}",
+          "mkdir -p {model_path}",
+          "mkdir {work_dir}",
+          "conda install pytorch=2.9.* torchvision -c conda-forge -c pytorch -y",
+          "pip install transformers",
+          "pip install accelerate",
+          "pip install git+https://github.com/huggingface/diffusers",
+          "pip install packaging"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "图像编辑",
+      "env_name": "Qwen-Image-Edit-2511",
+      "commands": [
+        "rm -rf {server_output_dir} && mkdir -p {server_output_dir}",
+        "cd {work_dir}",
+        "cp /tmp/Qwen-Image-Edit-2511_run.py ./run.py",
+        "echo '待处理图像：{input_image}'",
+        "python run.py \"{prompt}\" '{input_image}' {server_output_file} {num_inference_steps} 1.0 {seed} {true_cfg_scale} \"{negative_prompt}\" 1"
+      ]
+    }
+  ],
+  "endpoint": "echo \"{server_output_file}\"",
+  "uploads": [
+    {
+      "source_path": "Qwen-Image-Edit-2511/run.py",
+      "server_path": "/tmp/Qwen-Image-Edit-2511_run.py"
+    }
+  ]
+}

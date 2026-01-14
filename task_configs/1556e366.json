@@ -1,0 +1,452 @@
+{
+  "endpoint": "echo \"/tmp/InspireMusic_results\"",
+  "image":{
+    "label":"商品讲解视频生成",
+    "value":"image.ppinfra.com/prod-snpjnwfwpgoffjmsmhwc/9b3cb281d93ff17443f1bbf2248a4577:v1.0"
+  },
+  "metadata": {
+    "user_input_positions": [
+      {
+        "x": 353.2,
+        "y": 256.4,
+        "field_name": "input_acce6aa9"
+      },
+      {
+        "x": 25.600000000000023,
+        "y": 485.6,
+        "field_name": "input_970305f8"
+      }
+    ],
+    "app_node_positions": [
+      {
+        "task_name": "创建视频首图",
+        "x": 27.767323395043235,
+        "y": 96.84765716085482
+      },
+      {
+        "task_name": "生成广告文案",
+        "x": 20.76460443727683,
+        "y": 600.3568989893033
+      },
+      {
+        "task_name": "生成语音",
+        "x": 344.67631679303304,
+        "y": 442.59041939289403
+      },
+      {
+        "task_name": "生成视频",
+        "x": 692.4489530361218,
+        "y": 70.54644291366907
+      },
+      {
+        "task_name": "视频高清放大",
+        "x": 888.2830759101178,
+        "y": 579.2641237395791
+      },
+      {
+        "task_name": "生成视频字幕",
+        "x": 1267.999601947864,
+        "y": 61.45545386896086
+      },
+      {
+        "task_name": "音乐创作-InspireMusic-1.5B-Long",
+        "x": 1617.6610688174328,
+        "y": 44.618452106904044
+      }
+    ]
+  },
+  "is_cooperation": true,
+  "author": "用户",
+  "inputs": [
+    {
+      "editable": true,
+      "default_value": "100",
+      "label": "生成广告文案字数",
+      "type": "text",
+      "required": true,
+      "field_name": "input_acce6aa9"
+    },
+    {
+      "editable": true,
+      "default_value": "",
+      "label": "产品说明",
+      "type": "text",
+      "required": true,
+      "field_name": "input_970305f8"
+    },
+    {
+      "file_extensions": [
+        "mp3",
+        "wav",
+        "mp4",
+        "ogg",
+        "m4a"
+      ],
+      "editable": true,
+      "default_value": "",
+      "label": "音色参考文件（10秒以内，用于提取音色）",
+      "type": "file",
+      "required": true,
+      "field_name": "cosyvoice-tts-app.sample_audio"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "竖板-480P (480*832)",
+          "value": "480*832"
+        },
+        {
+          "label": "竖板-720P (720*1280)",
+          "value": "720*1280"
+        },
+        {
+          "label": "横板-480P (832*480)",
+          "value": "832*480"
+        },
+        {
+          "label": "横板-720P (1280*720)",
+          "value": "1280*720"
+        }
+      ],
+      "default_value": "480*832",
+      "label": "视频尺寸",
+      "type": "select",
+      "required": true,
+      "field_name": "Wan2.2-S2V-14B.resolution"
+    },
+    {
+      "file_extensions": [
+        "jpg",
+        "jpeg",
+        "png"
+      ],
+      "editable": true,
+      "default_value": "",
+      "label": "参考图像(待编辑的原始图片以及参考图片，可多图混用)",
+      "type": "files",
+      "required": true,
+      "field_name": "Qwen-Image-Edit-2511.input_image"
+    },
+    {
+      "editable": true,
+      "default_value": "请将这张图片的背景替换为大海",
+      "label": "提示词(描述编辑要求)",
+      "type": "textarea",
+      "required": true,
+      "field_name": "Qwen-Image-Edit-2511.prompt"
+    },
+    {
+      "file_extensions": ["mp4"],
+      "editable": true,
+      "default_value": "",
+      "label": "动作参考视频（可选，用于指导生成视频中的人物动作）",
+      "type": "file",
+      "required": false,
+      "field_name": "Wan2.2-S2V-14B.pose_video"
+    }
+  ],
+  "server_output": "/tmp/InspireMusic_results",
+  "name": "商品讲解视频生成-单场景",
+  "batch": [
+    {
+      "cooperation_id": "Qwen-Image-Edit-2511_step1",
+      "env_name": "1556e366",
+      "name": "创建视频首图",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "MODEL_USER_INPUT",
+            "value": "{Qwen-Image-Edit-2511.prompt}",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "EMPTY_VALUE",
+            "value": "",
+            "field_name": "negative_prompt"
+          },
+          {
+            "input_value_type": "MODEL_USER_INPUT",
+            "value": "{Qwen-Image-Edit-2511.input_image}",
+            "field_name": "input_image"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "40",
+            "field_name": "num_inference_steps"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "0",
+            "field_name": "seed"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "4",
+            "field_name": "true_cfg_scale"
+          }
+        ],
+        "app_id": "Qwen-Image-Edit-2511"
+      }
+    },
+    {
+      "cooperation_id": "llm-api-chat_step1",
+      "env_name": "1556e366",
+      "name": "生成广告文案",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "{input_970305f8}",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "false",
+            "field_name": "stream"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "auto",
+            "field_name": "response_format"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "你是一个广告助手，基于用户提供的产品信息设计一段{input_acce6aa9}字的广告文案，使用一行文字。",
+            "field_name": "system_prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "glm-4.7",
+            "field_name": "model"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "0.7",
+            "field_name": "temperature"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "2048",
+            "field_name": "max_tokens"
+          }
+        ],
+        "app_id": "llm-api-chat"
+      }
+    },
+    {
+      "cooperation_id": "cosyvoice-tts-app_step1",
+      "env_name": "1556e366",
+      "name": "生成语音",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://llm-api-chat_step1",
+            "field_name": "input_text"
+          },
+          {
+            "input_value_type": "MODEL_USER_INPUT",
+            "value": "{cosyvoice-tts-app.sample_audio}",
+            "field_name": "sample_audio"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "zero_shot",
+            "field_name": "mode"
+          },
+          {
+            "input_value_type": "EMPTY_VALUE",
+            "value": "",
+            "field_name": "instruction"
+          }
+        ],
+        "app_id": "cosyvoice-tts-app"
+      }
+    },
+    {
+      "cooperation_id": "Wan2.2-S2V-14B_step1",
+      "env_name": "1556e366",
+      "name": "生成视频",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "生成一个商品广告宣传片",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://Qwen-Image-Edit-2511_step1",
+            "field_name": "image"
+          },
+          {
+            "input_value_type": "MODEL_USER_INPUT",
+            "value": "{Wan2.2-S2V-14B.resolution}",
+            "field_name": "resolution"
+          },
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://cosyvoice-tts-app_step1",
+            "field_name": "audio"
+          },
+          {
+            "input_value_type": "MODEL_USER_INPUT",
+            "value": "{Wan2.2-S2V-14B.pose_video}",
+            "field_name": "pose_video"
+          }
+        ],
+        "app_id": "Wan2.2-S2V-14B"
+      }
+    },
+    {
+      "cooperation_id": "video-High-Quality_step1",
+      "env_name": "1556e366",
+      "name": "视频高清放大",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://Wan2.2-S2V-14B_step1",
+            "field_name": "video_file"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "2",
+            "field_name": "zoom_factor"
+          }
+        ],
+        "app_id": "video-High-Quality"
+      }
+    },
+    {
+      "cooperation_id": "whisper_step1",
+      "env_name": "1556e366",
+      "name": "生成视频字幕",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://video-High-Quality_step1",
+            "field_name": "video"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "zh",
+            "field_name": "language"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "transcribe",
+            "field_name": "output_language"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "1",
+            "field_name": "subtitle_shadow"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "H00FFFFFF",
+            "field_name": "subtitle_color"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "2",
+            "field_name": "subtitle_position"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "2",
+            "field_name": "subtitle_outline_width"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "H00000000",
+            "field_name": "subtitle_outline_color"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "20",
+            "field_name": "subtitle_margin_v"
+          }
+        ],
+        "app_id": "whisper"
+      }
+    },
+    {
+      "cooperation_id": "InspireMusic-1.5B-Long_step1",
+      "env_name": "1556e366",
+      "name": "音乐创作-InspireMusic-1.5B-Long",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "轻音乐",
+            "field_name": "text"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "chorus",
+            "field_name": "chorus"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "wav",
+            "field_name": "format"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "48000",
+            "field_name": "output_sample_rate"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "0",
+            "field_name": "time_start"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "30",
+            "field_name": "time_end"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "10",
+            "field_name": "min_generate_audio_seconds"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "30",
+            "field_name": "max_generate_audio_seconds"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "true",
+            "field_name": "fade_out"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "1",
+            "field_name": "fade_out_duration"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "false",
+            "field_name": "trim"
+          },
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://whisper_step1",
+            "field_name": "video"
+          }
+        ],
+        "app_id": "InspireMusic-1.5B-Long"
+      }
+    }
+  ],
+  "description": "",
+  "app_id": "1556e366",
+  "email": "",
+  "homepage": ""
+}

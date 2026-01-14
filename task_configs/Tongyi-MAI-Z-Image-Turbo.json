@@ -1,0 +1,161 @@
+{
+  "app_id": "Tongyi-MAI-Z-Image-Turbo",
+  "name": "图像生成-Tongyi-MAI/Z-Image-Turbo",
+  "description": "Z-Image 是一个强大的、高效的图像生成模型，具有 6B 参数。目前有三个变体：\n🚀 Z-Image-Turbo – Z-Image 的精简版，仅用 8 NFEs（函数评估次数）就能与领先竞争对手匹敌或超越。它在企业级 H800 GPU 上提供 ⚡️亚秒级推理延迟⚡️，并且可以在 16G 显存的消费设备上轻松运行。它擅长生成逼真的图像、双语文本渲染（英文和中文），并具有强大的指令遵循能力。\n🧱 Z-Image-Base – 非精简的基础模型。通过发布此检查点，我们旨在解锁社区驱动的微调和自定义开发的全部潜力。\n✍️ Z-Image-Edit – 专门针对图像编辑任务进行微调的 Z-Image 变体。它支持创意性的图像到图像生成，并具有令人印象深刻的指令跟随能力，允许根据自然语言提示进行精确编辑。",
+  "author": "Kevin Wu",
+  "homepage": "https://www.modelscope.cn/models/Tongyi-MAI/Z-Image-Turbo",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "提示词",
+      "field_name": "prompt",
+      "type": "textarea",
+      "default_value": "一位白发老渔夫在晨雾弥漫的港口修补渔网，脸上深深的皱纹在柔和侧光下格外清晰，身穿湿漉漉的橡胶围裙，写实肖像，索尼A7R IV拍摄，f/1.8大光圈浅景深，自然肤色质感，高清细节。",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "图像尺寸",
+      "field_name": "resolution",
+      "type": "select",
+      "default_value": "1088*1920",
+      "editable": true,
+      "required": true,
+      "options": [
+        {
+          "label": "竖版-标准 (480×832)",
+          "value": "480*832"
+        },
+        {
+          "label": "竖版-高清 (720×1280)",
+          "value": "720*1280"
+        },
+        {
+          "label": "竖版-全高清 (1088*1920)",
+          "value": "1088*1920"
+        },
+        {
+          "label": "竖版-2K (1440×2560)",
+          "value": "1440*2560"
+        },
+        {
+          "label": "竖版-4K (2160×3840)",
+          "value": "2160*3840"
+        },
+        {
+          "label": "横版-标准 (832×480)",
+          "value": "832*480"
+        },
+        {
+          "label": "横版-高清 (1280×720)",
+          "value": "1280*720"
+        },
+        {
+          "label": "横版-全高清 (1920*1088)",
+          "value": "1920*1088"
+        },
+        {
+          "label": "横版-2K (2560×1440)",
+          "value": "2560*1440"
+        },
+        {
+          "label": "横版-4K (3840×2160)",
+          "value": "3840*2160"
+        },
+        {
+          "label": "方形-小 (512×512)",
+          "value": "512*512"
+        },
+        {
+          "label": "方形-标准 (768×768)",
+          "value": "768*768"
+        },
+        {
+          "label": "方形-大 (1024×1024)",
+          "value": "1024*1024"
+        },
+        {
+          "label": "横幅- (1024×96)",
+          "value": "1024*96"
+        },
+        {
+          "label": "横幅- (1024×192)",
+          "value": "1024*192"
+        }
+      ]
+    },
+    {
+      "label": "生成数量",
+      "field_name": "num",
+      "type": "number",
+      "default_value": 4,
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "推理步数",
+      "field_name": "steps",
+      "type": "number",
+      "default_value": 9,
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "随机数种子",
+      "field_name": "seed",
+      "type": "number",
+      "default_value": "42",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "/root/Tongyi-MAI-Z-Image-Turbo"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/Tongyi-MAI-Z-Image-Turbo_results",
+  "model_path": "",
+  "installs": [
+    {
+      "env_name": "Tongyi-MAI-Z-Image-Turbo",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "conda install pytorch=2.9.* torchvision -c conda-forge -c pytorch -y",
+        "pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.1/flash_attn-2.8.1+cu12torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+        "pip install git+https://github.com/huggingface/diffusers",
+        "pip install modelscope transformers"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "Tongyi-MAI-Z-Image-Turbo",
+      "commands":[
+        "cp /tmp/Tongyi-MAI-Z-Image-Turbo-generate.py {work_dir}/generate.py",
+        "python -c \"import torch;from modelscope import ZImagePipeline;ZImagePipeline.from_pretrained('Tongyi-MAI/Z-Image-Turbo',torch_dtype=torch.bfloat16,low_cpu_mem_usage=False,)\""
+      ]
+    },
+    {
+      "name": "图像生成",
+      "env_name": "Tongyi-MAI-Z-Image-Turbo",
+      "commands": [
+        "cd {work_dir}",
+        "rm -rf {server_output_dir}/*",
+        "python -c \"import torch; print(f'PyTorch版本: {torch.__version__}'); print(f'CUDA是否可用: {torch.cuda.is_available()}'); (print(f'CUDA版本: {torch.version.cuda}'), print(f'cuDNN版本: {torch.backends.cudnn.version()}'), print(f'GPU数量: {torch.cuda.device_count()}'), [print(f'GPU {i}: {torch.cuda.get_device_name(i)}') for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else None\"",
+        "python ./generate.py --prompt \"{prompt}\" --resolution {resolution} --num {num} --seed {seed} --steps {steps} --output-dir {server_output_dir} --output {server_output_dir}/result.png"
+      ]
+    }
+  ],
+  "uploads": [
+    {
+      "source_path": "Tongyi-MAI-Z-Image-Turbo/generate.py",
+      "server_path": "/tmp/Tongyi-MAI-Z-Image-Turbo-generate.py"
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}\""
+}

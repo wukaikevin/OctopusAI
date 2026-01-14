@@ -1,0 +1,110 @@
+{
+  "app_id": "LatentSync",
+  "name": "视频人物唇形同步-LatentSync",
+  "description": "基于字节跳动LatentSync模型的视频唇形同步工具，能够根据音频内容精确调整视频中人物嘴型，实现精准的音画同步。支持自动替换视频原音频，使用Whisper模型进行音频处理，确保唇形与语音完美匹配。全程必须在视频中包含人脸才能正常运行，适用于虚拟主播、视频配音、口型修正等场景。",
+  "author": "ByteDance",
+  "homepage": "https://github.com/bytedance/LatentSync",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "视频（必须全程包含人脸）",
+      "field_name": "video",
+      "type": "file",
+      "file_extensions": [
+        "mp4"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "音频（可选，如果提供则替换视频中的原音频）",
+      "field_name": "audio",
+      "type": "file",
+      "default_value": "",
+      "editable": true,
+      "required": false,
+      "file_extensions": [
+        "mp4","mp3","wav"
+      ]
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/LatentSync"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/LatentSync_results",
+  "model_path": "$HOME/.cache/LatentSync/models",
+  "installs": [
+    {
+      "env_name": "LatentSync",
+      "python_version": "3.10",
+      "cuda_version": "12.8",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {model_path}",
+        "mkdir -p {server_output_dir}",
+        "# 唇形同步",
+        "git clone https://github.com/bytedance/LatentSync.git {work_dir}",
+        "cd {work_dir}",
+        "pip install -r requirements.txt",
+        "conda install -y ffmpeg=7.1.1 -c conda-forge",
+        "pip install huggingface_hub[cli]",
+        "ln -s \"{model_path}\" \"{work_dir}/checkpoints\""
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "模型准备",
+      "env_name": "LatentSync",
+      "commands":[
+        "huggingface-cli download ByteDance/LatentSync-1.6 whisper/tiny.pt --local-dir {model_path}",
+        "huggingface-cli download ByteDance/LatentSync-1.6 latentsync_unet.pt --local-dir {model_path}"
+      ]
+    },
+    {
+      "name": "视频分解",
+      "env_name": "LatentSync",
+      "commands": [
+        "rm -rf {server_output_dir}/*",
+        "ffmpeg -hide_banner -loglevel error -i {video} -c:v copy -an -y {server_output_dir}/video_no_sound.mp4",
+        "ffmpeg -hide_banner -loglevel error -i {video} -c:a pcm_s16le -vn -y {server_output_dir}/sound_out.wav || true"
+      ],
+      "required_inputs": [
+        "video"
+      ]
+    },
+    {
+      "name": "融合音频",
+      "env_name": "LatentSync",
+      "required_inputs": [
+        "audio",
+        "video"
+      ],
+      "commands": [
+        "ffmpeg -hide_banner -loglevel error -i {server_output_dir}/video_no_sound.mp4 -i {audio} -c:a pcm_s16le -map 1:a -shortest -y {server_output_dir}/sound_out.wav"
+      ]
+    },
+    {
+      "name": "唇形同步",
+      "env_name": "LatentSync",
+      "required_inputs": [
+        "video"
+      ],
+      "commands": [
+        "cd {work_dir}",
+        "cp /tmp/LatentSync_inference.py ./scripts.inference",
+        "python -m scripts.inference --unet_config_path \"configs/unet/stage2_512.yaml\" --inference_ckpt_path \"{model_path}/latentsync_unet.pt\" --inference_steps 10 --guidance_scale 1.5 --enable_deepcache --video_path \"{server_output_dir}/video_no_sound.mp4\" --audio_path \"{server_output_dir}/sound_out.wav\" --video_out_path \"{server_output_dir}/video_and_audio_syn_lip.mp4\""
+      ]
+    }
+  ],
+  
+  "endpoint": "echo \"{server_output_dir}/video_and_audio_syn_lip.mp4\"",
+  "uploads": [
+    {
+      "source_path": "LatentSync/inference.py",
+      "server_path": "/tmp/LatentSync_inference.py"
+    }
+  ]
+}

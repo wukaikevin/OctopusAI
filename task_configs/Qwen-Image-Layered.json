@@ -1,0 +1,73 @@
+{
+  "app_id": "Qwen-Image-Layered",
+  "name": "图层分解-Qwen-Image-Layered",
+  "description": "我们很高兴介绍 Qwen-Image-Layered，一个能够将图像分解成多个 RGBA 层的模型。这种分层表示解锁了固有的可编辑性：每个层可以独立操作而不会影响其他内容。同时，这种分层表示自然支持高保真基础操作，例如调整大小、重新定位和重新着色。通过将语义或结构组件物理隔离到不同的层中，我们的方法实现了高保真度和一致性的编辑。",
+  "author": "通义千问",
+  "homepage": "https://modelscope.cn/models/Qwen/Qwen-Image-Layered",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "源图像",
+      "field_name": "input_image",
+      "type": "file",
+      "file_extensions": [
+        "jpg",
+        "jpeg",
+        "png"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/Qwen-Image-Layered"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/Qwen-Image-Layered_results",
+  "model_path": "",
+  "installs": [
+    {
+      "env_name": "Qwen-Image-Layered",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+          "rm -rf {work_dir}",
+          "mkdir {work_dir}",
+          "pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129",
+          "pip install transformers",
+          "pip install accelerate",
+          "pip install git+https://github.com/huggingface/diffusers",
+          "pip install packaging",
+          "pip install modelscope"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "准备模型",
+      "env_name": "Qwen-Image-Layered",
+      "commands":[
+        "python -c \"from modelscope import QwenImageLayeredPipeline;QwenImageLayeredPipeline.from_pretrained('Qwen/Qwen-Image-Layered')\""
+      ]
+    },
+    {
+      "name": "图像分解",
+      "env_name": "Qwen-Image-Layered",
+      "commands": [
+        "rm -rf {server_output_dir} && mkdir -p {server_output_dir}",
+        "cd {work_dir}",
+        "cp /tmp/Qwen-Image-Layered_run.py ./run.py",
+        "echo '待处理图像：{input_image}'",
+        "python run.py '{input_image}' {server_output_dir}"
+      ]
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}\"",
+  "uploads": [
+    {
+      "source_path": "Qwen-Image-Layered/run.py",
+      "server_path": "/tmp/Qwen-Image-Layered_run.py"
+    }
+  ]
+}

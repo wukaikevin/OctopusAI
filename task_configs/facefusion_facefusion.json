@@ -1,0 +1,71 @@
+{
+  "app_id": "facefusion",
+  "name": "视频人脸替换-FaceFusion",
+  "description": "基于FaceFusion的视频人脸替换工具，能够将指定的人脸图像替换到视频中的目标人物。支持高精度人脸检测与融合，自动进行人脸增强处理，确保替换效果自然逼真。支持多种视频格式（MP4/AVI/MOV/MKV），适用于视频创作、内容制作等场景。",
+  "author": "FaceFusion Team",
+  "homepage": "https://github.com/facefusion/facefusion",
+  "email": "team@example.com",
+  "inputs": [
+    {
+      "label": "人脸图像",
+      "field_name": "face_image",
+      "type": "file",
+      "default_value": "",
+      "file_extensions": [
+        "jpg",
+        "jpeg",
+        "png"
+      ],
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "替换视频",
+      "field_name": "input_video",
+      "type": "file",
+      "file_extensions": [
+        "mp4",
+        "avi",
+        "mov",
+        "mkv"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/facefusion"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/facefusion_results",
+  "model_path": "$HOME/.cache/facefusion_models",
+  "installs": [
+    {
+      "env_name": "facefusion",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "conda install -y ffmpeg=7.1.1 -c conda-forge",
+        "git clone https://github.com/facefusion/facefusion {work_dir}",
+        "cd {work_dir}",
+        "python install.py --onnxruntime cuda"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "人脸融合",
+      "env_name": "facefusion",
+      "commands": [
+        "rm -rf {server_output_dir}/*",
+        "mkdir -p {server_output_dir}",
+        "cd {work_dir} && python facefusion.py headless-run --download-providers huggingface --execution-providers cuda --processors face_swapper face_enhancer --source-paths {face_image} --target-path {input_video} --output-path {server_output_dir}/result.mp4"
+      ]
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}/result.mp4\""
+}

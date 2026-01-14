@@ -1,0 +1,4398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI工作流配置文件编辑器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        :root {
+            --primary-black: #0a0a0a;
+            --secondary-black: #1a1a1a;
+            --tertiary-black: #2a2a2a;
+            --primary-white: #ffffff;
+            --secondary-white: #f0f0f0;
+            --accent-color: #0066ff;
+            --accent-light: #3399ff;
+            --border-color: #333;
+            --success-color: #00cc66;
+            --warning-color: #ff9900;
+            --error-color: #ff3333;
+            --code-bg: #1e1e1e;
+            --sidebar-width: 320px;
+            --preview-panel-width: 400px;
+            --content-padding: 20px;
+            --header-height: 60px;
+            --form-header-height: 60px;
+            --form-header-expanded-height: 80px;
+        }
+
+        body {
+            background-color: var(--primary-black);
+            color: var(--primary-white);
+            height: 100vh;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--secondary-black);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-white);
+        }
+
+        .sidebar-header p {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .config-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .config-nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .config-nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .config-nav-item.active {
+            background-color: rgba(0, 102, 255, 0.1);
+            border-left-color: var(--accent-color);
+            color: var(--accent-light);
+        }
+
+        .config-nav-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .item-count {
+            background-color: var(--tertiary-black);
+            color: #aaa;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-footer-top {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sidebar-footer-bottom {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-light);
+        }
+
+        .btn-secondary {
+            background-color: var(--tertiary-black);
+            color: var(--primary-white);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background-color: var(--tertiary-black);
+            color: var(--primary-white);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(255, 51, 51, 0.1);
+            color: var(--error-color);
+            border-color: rgba(255, 51, 51, 0.3);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            flex: 0 0 auto;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #00ff80;
+        }
+
+        /* 主内容区样式 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .content-header {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--secondary-black);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            height: var(--header-height);
+            flex-shrink: 0;
+        }
+
+        .content-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow: auto;
+            padding: var(--content-padding);
+            position: relative;
+        }
+
+        /* 表单样式 */
+        .form-section {
+            background-color: var(--secondary-black);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            overflow: visible;
+            position: relative;
+            transition: margin-top 0.3s ease;
+        }
+
+        .form-section-header {
+            padding: 15px 20px;
+            background-color: var(--tertiary-black);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 150;
+            height: var(--form-header-height);
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            margin-left: 0;
+            margin-right: 0;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .form-section-header.sticky-active {
+            position: fixed;
+            top: var(--header-height);
+            height: var(--form-header-expanded-height);
+            z-index: 180;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            background-color: var(--primary-black);
+            border-left: 3px solid var(--accent-color);
+            transform: scale(1.02);
+            animation: headerExpand 0.3s ease forwards;
+            width: calc(100% - var(--sidebar-width) - var(--content-padding) * 2);
+            left: calc(var(--sidebar-width) + var(--content-padding));
+            max-width: calc(100vw - var(--sidebar-width) - var(--content-padding) * 2);
+        }
+
+        @keyframes headerExpand {
+            0% {
+                transform: scale(1);
+                background-color: var(--tertiary-black);
+            }
+            100% {
+                transform: scale(1.02);
+                background-color: var(--primary-black);
+            }
+        }
+
+        .form-section-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            flex: 1;
+            transition: all 0.3s ease;
+        }
+
+        .form-section-header.sticky-active h3 {
+            font-size: 1.3rem;
+            color: var(--accent-light);
+        }
+
+        .form-section-header .header-actions {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .form-section-header.sticky-active .header-actions {
+            transform: scale(1.1);
+        }
+
+        .form-section-content {
+            padding: 20px;
+        }
+
+        .form-section.sticky-active {
+            margin-top: calc(var(--form-header-expanded-height) + 10px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--tertiary-black);
+            color: var(--primary-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-hint {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .form-hint.warning {
+            color: var(--warning-color);
+        }
+
+        .form-hint.error {
+            color: var(--error-color);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* 列表项样式 */
+        .list-item {
+            background-color: var(--tertiary-black);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .list-item.new-item {
+            animation: highlightNewItem 2s ease;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(0, 102, 255, 0.3);
+        }
+
+        @keyframes highlightNewItem {
+            0% {
+                background-color: rgba(0, 102, 255, 0.1);
+                transform: translateY(-10px);
+                opacity: 0.8;
+            }
+            100% {
+                background-color: var(--tertiary-black);
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            color: var(--accent-light);
+        }
+
+        .list-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 预览面板 */
+        .preview-panel {
+            width: var(--preview-panel-width);
+            background-color: var(--secondary-black);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .preview-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--secondary-black);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .preview-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .preview-json {
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .preview-json .key {
+            color: #9cdcfe;
+        }
+
+        .preview-json .string {
+            color: #ce9178;
+        }
+
+        .preview-json .number {
+            color: #b5cea8;
+        }
+
+        .preview-json .boolean {
+            color: #569cd6;
+        }
+
+        .preview-json .null {
+            color: #569cd6;
+        }
+
+        /* 代码编辑器容器 */
+        .code-editor-container {
+            height: 300px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        /* 通知 */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: var(--tertiary-black);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left-color: var(--success-color);
+        }
+
+        .notification.error {
+            border-left-color: var(--error-color);
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 1200px) {
+            .preview-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --sidebar-width: 280px;
+                --content-padding: 15px;
+            }
+            
+            .sidebar {
+                width: var(--sidebar-width);
+            }
+            
+            .content-header, .form-section-header {
+                padding: 15px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar-footer-top,
+            .sidebar-footer-bottom {
+                flex-direction: column;
+            }
+            
+            .form-section-header {
+                flex-direction: column;
+                height: auto;
+                padding: 10px 15px;
+                gap: 10px;
+            }
+            
+            .form-section-header h3 {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .form-section-header .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .form-section-header.sticky-active {
+                position: relative;
+                top: 0;
+                left: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                transform: none;
+                animation: none;
+                height: auto;
+            }
+            
+            .form-section.sticky-active {
+                margin-top: 0;
+            }
+            
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+            }
+            
+            .main-content {
+                flex: 1;
+            }
+        }
+
+        /* 工具提示 */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--tertiary-black);
+            color: var(--primary-white);
+            text-align: center;
+            border-radius: 4px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* 环境状态指示器 */
+        .env-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .env-status.defined {
+            background-color: rgba(0, 204, 102, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(0, 204, 102, 0.3);
+        }
+
+        .env-status.undefined {
+            background-color: rgba(255, 153, 0, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(255, 153, 0, 0.3);
+        }
+
+        /* 环境变量编辑器样式 */
+        .variables-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .variable-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 多选下拉框样式 */
+        .multiselect-container {
+            position: relative;
+        }
+
+        .multiselect-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px;
+            background-color: var(--tertiary-black);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-height: 44px;
+            cursor: pointer;
+        }
+
+        .multiselect-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--tertiary-black);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .multiselect-dropdown.show {
+            display: block;
+        }
+
+        .multiselect-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .multiselect-option:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .multiselect-option.selected {
+            background-color: rgba(0, 102, 255, 0.2);
+            color: var(--accent-light);
+        }
+
+        .multiselect-tag {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .multiselect-tag-remove {
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .multiselect-tag-remove:hover {
+            opacity: 1;
+        }
+
+        .multiselect-placeholder {
+            color: #888;
+            font-size: 0.9rem;
+            align-self: center;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--secondary-black);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--tertiary-black);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* 滚动到底部按钮 */
+        .scroll-to-bottom-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .scroll-to-bottom-btn.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .scroll-to-bottom-btn:hover {
+            background-color: var(--accent-light);
+            transform: scale(1.1);
+        }
+
+        /* 选项编辑框样式 */
+        .options-container {
+            margin-top: 10px;
+        }
+
+        .options-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--tertiary-black);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .options-table th,
+        .options-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        .options-table th {
+            background-color: var(--secondary-black);
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        .options-table td {
+            background-color: var(--tertiary-black);
+        }
+
+        .options-table .option-label,
+        .options-table .option-value {
+            width: 45%;
+        }
+
+        .options-table .option-actions {
+            width: 10%;
+            text-align: center;
+        }
+
+        .options-input {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--tertiary-black);
+            color: var(--primary-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .options-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .option-json-input {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .options-editor-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .options-editor-tab {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .options-editor-tab.active {
+            border-bottom-color: var(--accent-color);
+            color: var(--accent-light);
+        }
+
+        .options-editor-tab:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .options-editor-content {
+            margin-top: 10px;
+        }
+
+        .option-json-hint {
+            margin-top: 5px;
+            font-size: 0.85rem;
+            color: #888;
+            font-family: monospace;
+        }
+
+        .option-json-hint code {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .option-example {
+            margin-top: 5px;
+            padding: 8px;
+            background-color: rgba(0, 102, 255, 0.1);
+            border-left: 3px solid var(--accent-color);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.85rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* 向导样式 */
+        .wizard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wizard-overlay.active {
+            display: flex;
+        }
+
+        .wizard-container {
+            background-color: var(--secondary-black);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wizard-header {
+            padding: 20px;
+            background-color: var(--tertiary-black);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wizard-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .wizard-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .wizard-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--tertiary-black);
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        .wizard-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .wizard-progress::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--border-color);
+            z-index: 1;
+        }
+
+        .wizard-progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+
+        .wizard-progress-step .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .wizard-progress-step.active .step-number {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .wizard-progress-step.completed .step-number {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .wizard-progress-step .step-label {
+            font-size: 0.9rem;
+            color: #888;
+            text-align: center;
+        }
+
+        .wizard-progress-step.active .step-label {
+            color: var(--accent-light);
+        }
+
+        .wizard-progress-step.completed .step-label {
+            color: var(--success-color);
+        }
+
+        /* 协作输入表格样式 */
+        .cooperation-inputs-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--tertiary-black);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .cooperation-inputs-table th,
+        .cooperation-inputs-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        .cooperation-inputs-table th {
+            background-color: var(--secondary-black);
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        .cooperation-inputs-table td {
+            background-color: var(--tertiary-black);
+        }
+
+        .cooperation-inputs-table .input-field-name {
+            width: 35%;
+        }
+
+        .cooperation-inputs-table .input-value {
+            width: 55%;
+        }
+
+        .cooperation-inputs-table .input-actions {
+            width: 10%;
+            text-align: center;
+        }
+
+        /* 文件上传配置样式 */
+        .uploads-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--tertiary-black);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .uploads-table th,
+        .uploads-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        .uploads-table th {
+            background-color: var(--secondary-black);
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        .uploads-table td {
+            background-color: var(--tertiary-black);
+        }
+
+        .uploads-table .source-path {
+            width: 45%;
+        }
+
+        .uploads-table .server-path {
+            width: 45%;
+        }
+
+        .uploads-table .upload-actions {
+            width: 10%;
+            text-align: center;
+        }
+
+        /* 文件扩展名标签样式 */
+        .file-extensions-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .file-extension-tag {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .file-extension-tag-remove {
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .file-extension-tag-remove:hover {
+            opacity: 1;
+        }
+
+        /* 批量执行类型选择器样式 - 改为推理设置类型选择器 */
+        .batch-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .batch-type-option {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            background-color: var(--tertiary-black);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .batch-type-option.active {
+            background-color: rgba(0, 102, 255, 0.2);
+            color: var(--accent-light);
+            border: 1px solid rgba(0, 102, 255, 0.5);
+        }
+
+        .batch-type-option:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* 修改侧边栏底部按钮布局 */
+        .sidebar-footer-bottom {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* 移除保存按钮后，调整导出按钮样式 */
+        .btn-export-full {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-code-branch"></i> AI工作流配置</h1>
+                <p>实时编辑配置文件</p>
+            </div>
+            
+            <div class="config-nav">
+                <div class="config-nav-item active" data-section="basic">
+                    <div>
+                        <i class="fas fa-cog"></i> 基本信息
+                    </div>
+                </div>
+                <div class="config-nav-item" data-section="inputs">
+                    <div>
+                        <i class="fas fa-sliders-h"></i> 输入参数
+                    </div>
+                    <span class="item-count" id="inputsCount">0</span>
+                </div>
+                <div class="config-nav-item" data-section="variables">
+                    <div>
+                        <i class="fas fa-code"></i> 环境变量
+                    </div>
+                    <span class="item-count" id="variablesCount">0</span>
+                </div>
+                <div class="config-nav-item" data-section="installs">
+                    <div>
+                        <i class="fas fa-download"></i> 环境安装
+                    </div>
+                    <span class="item-count" id="installsCount">0</span>
+                </div>
+                <div class="config-nav-item" data-section="batch">
+                    <div>
+                        <i class="fas fa-play-circle"></i> 推理设置
+                    </div>
+                    <span class="item-count" id="batchCount">0</span>
+                </div>
+                <div class="config-nav-item" data-section="uploads">
+                    <div>
+                        <i class="fas fa-upload"></i> 文件上传
+                    </div>
+                    <span class="item-count" id="uploadsCount">0</span>
+                </div>
+                <div class="config-nav-item" data-section="advanced">
+                    <div>
+                        <i class="fas fa-tools"></i> 高级设置
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-top">
+                    <button class="btn btn-primary" id="btnNew">
+                        <i class="fas fa-plus-circle"></i> 新建向导
+                    </button>
+                    <button class="btn btn-secondary" id="btnImport">
+                        <i class="fas fa-file-import"></i> 导入
+                    </button>
+                </div>
+                <div class="sidebar-footer-bottom">
+                    <!-- 移除保存按钮，只保留导出按钮 -->
+                    <button class="btn btn-secondary btn-export-full" id="btnExport">
+                        <i class="fas fa-file-export"></i> 导出配置
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h2 id="sectionTitle">基本信息</h2>
+                <div>
+                    <button class="btn btn-secondary" id="btnValidate">
+                        <i class="fas fa-check-circle"></i> 验证配置
+                    </button>
+                </div>
+            </div>
+            
+            <div class="content-area" id="contentArea">
+                <!-- 内容将通过JavaScript动态加载 -->
+            </div>
+        </div>
+        
+        <!-- 预览面板 -->
+        <div class="preview-panel" id="previewPanel">
+            <div class="preview-header">
+                <h3>实时预览</h3>
+                <button class="btn btn-sm btn-secondary" id="btnRefreshPreview">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            <div class="preview-content">
+                <pre class="preview-json" id="jsonPreview"></pre>
+            </div>
+        </div>
+        
+        <!-- 滚动到底部按钮 -->
+        <button class="scroll-to-bottom-btn" id="scrollToBottomBtn" title="滚动到底部">
+            <i class="fas fa-arrow-down"></i>
+        </button>
+    </div>
+    
+    <!-- 向导界面 -->
+    <div class="wizard-overlay" id="wizardOverlay">
+        <div class="wizard-container">
+            <div class="wizard-header">
+                <h3><i class="fas fa-magic"></i> AI工作流配置向导</h3>
+                <button class="btn btn-sm btn-secondary" id="btnCloseWizard">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+            
+            <div class="wizard-content">
+                <div class="wizard-progress" id="wizardProgress">
+                    <!-- 进度步骤将通过JavaScript动态生成 -->
+                </div>
+                
+                <div class="wizard-step active" id="wizardStep1">
+                    <h3>步骤 1: 应用基本信息</h3>
+                    <p class="form-hint">请填写应用的基本信息，这些信息将用于识别和管理您的工作流配置。</p>
+                    
+                    <div class="form-group">
+                        <label for="wizard_app_id">应用ID</label>
+                        <input type="text" id="wizard_app_id" class="form-control" placeholder="例如: LiveVideoGenerater">
+                        <div class="form-hint">应用的唯一标识符，使用小写字母和下划线，建议使用英文</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wizard_name">应用名称</label>
+                        <input type="text" id="wizard_name" class="form-control" placeholder="例如: 无人直播素材合成">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wizard_description">应用描述</label>
+                        <textarea id="wizard_description" class="form-control" rows="3" placeholder="请简要描述这个应用的功能和用途"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="wizard_author">作者</label>
+                            <input type="text" id="wizard_author" class="form-control" placeholder="您的姓名或用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard_email">邮箱</label>
+                            <input type="email" id="wizard_email" class="form-control" placeholder="联系邮箱">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="wizard-step" id="wizardStep2">
+                    <h3>步骤 2: 输入参数配置</h3>
+                    <p class="form-hint">配置用户在使用此应用时需要提供的输入参数。例如：文本输入、文件上传、下拉选择等。</p>
+                    
+                    <div id="wizardInputsList">
+                        <!-- 输入参数列表将动态生成 -->
+                    </div>
+                    
+                    <button class="btn btn-secondary" id="btnAddWizardInput">
+                        <i class="fas fa-plus"></i> 添加输入参数
+                    </button>
+                </div>
+                
+                <div class="wizard-step" id="wizardStep3">
+                    <h3>步骤 3: 环境安装配置</h3>
+                    <p class="form-hint">定义应用运行所需的软件环境，包括Python版本、CUDA版本和安装命令。</p>
+                    
+                    <div class="form-group">
+                        <label for="wizard_env_name">环境名称</label>
+                        <input type="text" id="wizard_env_name" class="form-control" placeholder="例如: default_env">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="wizard_python_version">Python版本</label>
+                            <input type="text" id="wizard_python_version" class="form-control" placeholder="例如: 3.9">
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard_cuda_version">CUDA版本 (可选)</label>
+                            <input type="text" id="wizard_cuda_version" class="form-control" placeholder="例如: 12.8 (如果不需要GPU可以留空)" value="12.8">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wizard_install_commands">安装命令</label>
+                        <textarea id="wizard_install_commands" class="form-control" rows="4" placeholder="每行一个命令，例如：
+pip install torch
+pip install transformers"></textarea>
+                        <div class="form-hint">支持多行命令，可以使用 {work_dir} 等变量</div>
+                    </div>
+                </div>
+                
+                <div class="wizard-step" id="wizardStep4">
+                    <h3>步骤 4: 推理设置配置</h3>
+                    <p class="form-hint">定义应用的工作流程步骤，每个步骤可以是本地命令执行或与其他应用的协作。</p>
+                    
+                    <div id="wizardBatchList">
+                        <!-- 推理设置步骤将动态生成 -->
+                    </div>
+                    
+                    <button class="btn btn-secondary" id="btnAddWizardBatch">
+                        <i class="fas fa-plus"></i> 添加执行步骤
+                    </button>
+                </div>
+                
+                <div class="wizard-step" id="wizardStep5">
+                    <h3>步骤 5: 文件上传配置 (可选)</h3>
+                    <p class="form-hint">配置需要上传到服务器的本地文件，这些文件将在应用执行前被上传到指定位置。</p>
+                    
+                    <div id="wizardUploadsList">
+                        <!-- 文件上传列表将动态生成 -->
+                    </div>
+                    
+                    <button class="btn btn-secondary" id="btnAddWizardUpload">
+                        <i class="fas fa-plus"></i> 添加上传文件
+                    </button>
+                </div>
+                
+                <div class="wizard-step" id="wizardStep6">
+                    <h3>步骤 6: 完成配置</h3>
+                    <p class="form-hint">检查您的配置信息，完成创建工作流。</p>
+                    
+                    <div class="form-group">
+                        <label for="wizard_endpoint">最终输出指令 (可选)</label>
+                        <input type="text" id="wizard_endpoint" class="form-control" placeholder="例如: echo '{server_output_file}'">
+                        <div class="form-hint">程序运行完毕后的最终结果输出指令，可以使用 {变量} 引用</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wizard_work_dir">工作目录变量</label>
+                        <input type="text" id="wizard_work_dir" class="form-control" value="$HOME/ai_project">
+                        <div class="form-hint">工作目录的环境变量值，将在安装和执行过程中使用</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="wizard_server_output_file">服务器输出文件</label>
+                            <input type="text" id="wizard_server_output_file" class="form-control" placeholder="/tmp/results/output.mp4">
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard_server_output_dir">服务器输出目录</label>
+                            <input type="text" id="wizard_server_output_dir" class="form-control" placeholder="/tmp/results">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <h4>配置摘要</h4>
+                        <div class="list-item">
+                            <p><strong>应用ID:</strong> <span id="wizard_summary_app_id">未设置</span></p>
+                            <p><strong>应用名称:</strong> <span id="wizard_summary_name">未设置</span></p>
+                            <p><strong>输入参数:</strong> <span id="wizard_summary_inputs">0 个</span></p>
+                            <p><strong>环境安装:</strong> <span id="wizard_summary_installs">0 个</span></p>
+                            <p><strong>推理步骤:</strong> <span id="wizard_summary_batch">0 个</span></p>
+                            <p><strong>上传文件:</strong> <span id="wizard_summary_uploads">0 个</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="wizard-footer">
+                <button class="btn btn-secondary" id="btnWizardPrev">
+                    <i class="fas fa-arrow-left"></i> 上一步
+                </button>
+                <div>
+                    <span id="wizardStepIndicator">步骤 1/6</span>
+                </div>
+                <button class="btn btn-primary" id="btnWizardNext">
+                    下一步 <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知 -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <div id="notificationText">操作成功</div>
+    </div>
+    
+    <!-- 脚本库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
+    
+    <script>
+        // 默认配置模板
+        const defaultConfigTemplate = {
+            app_id: "new_app_" + Date.now(),
+            name: "新应用",
+            description: "这是一个新的AI工作流应用",
+            author: "",
+            homepage: "",
+            email: "",
+            endpoint: "",
+            inputs: [],
+            variables: {},
+            server_output_file: "",
+            server_output_dir: "/tmp/results",
+            model_path: "$HOME/.cache/model",
+            installs: [],
+            batch: [],
+            uploads: []
+        };
+
+        // 全局配置数据
+        let configData = JSON.parse(JSON.stringify(defaultConfigTemplate));
+
+        // 当前活动部分
+        let activeSection = 'basic';
+
+        // CodeMirror编辑器实例缓存
+        let codeEditors = {};
+
+        // 多选下拉框实例缓存
+        let multiselectInstances = {};
+
+        // 记录最新添加的项目索引
+        let lastAddedItemIndex = -1;
+        lastAddedItemType = '';
+
+        // 向导状态
+        let wizardCurrentStep = 1;
+        const wizardTotalSteps = 6;
+        const wizardInputs = [];
+        const wizardInstalls = [];
+        const wizardBatch = [];
+        const wizardUploads = [];
+
+        // UTF-8解码BASE64的函数
+        function base64ToUtf8(base64) {
+            try {
+                const binaryString = atob(base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const decoder = new TextDecoder('utf-8');
+                return decoder.decode(bytes);
+            } catch (error) {
+                console.error('BASE64解码失败:', error);
+                throw error;
+            }
+        }
+
+        // 页面初始化函数
+        function init() {
+            console.log('正在初始化应用...');
+            
+            try {
+                const savedConfig = localStorage.getItem('ai_workflow_config');
+                if (savedConfig) {
+                    configData = JSON.parse(savedConfig);
+                    showNotification('已加载本地保存的配置', 'info');
+                }
+            } catch (error) {
+                console.warn('无法加载本地配置:', error);
+            }
+            
+            try {
+                if (loadConfigFromBase64UrlParam()) {
+                }
+            } catch (error) {
+                console.warn('无法从URL参数加载配置:', error);
+            }
+            
+            updateCounters();
+            loadSection('basic');
+            updatePreview();
+            bindEvents();
+            setupAutoSave();
+            initScrollListener();
+            initScrollToBottomButton();
+            initWizard();
+            
+            console.log('应用初始化完成');
+        }
+
+        // 从URL参数加载BASE64编码的配置
+        function loadConfigFromBase64UrlParam() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const contentParam = urlParams.get('content');
+                
+                if (contentParam) {
+                    try {
+                        console.log('从URL参数检测到content参数，开始解码...');
+                        const decodedContent = base64ToUtf8(contentParam);
+                        console.log('BASE64解码成功，内容长度:', decodedContent.length);
+                        const config = JSON.parse(decodedContent);
+                        console.log('JSON解析成功:', config);
+                        
+                        const requiredFields = ['app_id', 'name', 'inputs', 'variables', 'installs', 'batch'];
+                        const missingFields = requiredFields.filter(field => !config.hasOwnProperty(field));
+                        
+                        if (missingFields.length > 0) {
+                            showNotification(`从URL导入失败：缺少必要字段: ${missingFields.join(', ')}`, 'error');
+                            return false;
+                        }
+                        
+                        configData = config;
+                        updateCounters();
+                        updatePreview();
+                        showNotification('已从URL参数成功导入配置', 'success');
+                        
+                        const newUrl = window.location.pathname + window.location.search.replace(/[?&]content=[^&]*/, '').replace(/^&/, '?');
+                        window.history.replaceState({}, document.title, newUrl);
+                        
+                        return true;
+                    } catch (e) {
+                        console.warn('URL参数不是有效的BASE64编码JSON:', e);
+                        showNotification('URL参数解析失败：请检查BASE64编码和JSON格式', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('从URL参数加载BASE64配置失败:', error);
+            }
+            return false;
+        }
+
+        // 初始化滚动监听
+        function initScrollListener() {
+            const contentArea = document.getElementById('contentArea');
+            if (!contentArea) return;
+            
+            contentArea.addEventListener('scroll', function() {
+                handleContentScroll();
+                updateScrollToBottomButton();
+            });
+            
+            window.addEventListener('resize', function() {
+                handleContentScroll();
+            });
+        }
+
+        // 处理内容区域滚动
+        function handleContentScroll() {
+            const contentArea = document.getElementById('contentArea');
+            const mainHeader = document.querySelector('.content-header');
+            
+            if (!contentArea || !mainHeader) return;
+            
+            const scrollTop = contentArea.scrollTop;
+            const formHeaders = document.querySelectorAll('.form-section-header');
+            
+            formHeaders.forEach(header => {
+                const section = header.parentElement;
+                const sectionRect = section.getBoundingClientRect();
+                const contentRect = contentArea.getBoundingClientRect();
+                const mainHeaderHeight = mainHeader.offsetHeight;
+                
+                const sectionTopRelative = sectionRect.top - contentRect.top;
+                
+                if (sectionTopRelative <= mainHeaderHeight && scrollTop > 10) {
+                    const sidebar = document.querySelector('.sidebar');
+                    const sidebarWidth = sidebar ? sidebar.offsetWidth : 0;
+                    const contentPadding = parseInt(getComputedStyle(contentArea).paddingLeft) || 20;
+                    
+                    updateStickyHeaderWidth(header, sidebarWidth, contentPadding);
+                    section.classList.add('sticky-active');
+                } else {
+                    header.classList.remove('sticky-active');
+                    header.style.left = '';
+                    header.style.right = '';
+                    header.style.width = '';
+                    header.style.maxWidth = '';
+                    section.classList.remove('sticky-active');
+                }
+            });
+        }
+
+        // 更新悬浮标题栏的宽度
+        function updateStickyHeaderWidth(header, sidebarWidth, contentPadding) {
+            const previewPanel = document.getElementById('previewPanel');
+            const isPreviewVisible = previewPanel && 
+                                    getComputedStyle(previewPanel).display !== 'none' &&
+                                    previewPanel.offsetWidth > 0;
+            
+            let availableWidth = window.innerWidth - sidebarWidth - contentPadding * 2;
+            
+            if (isPreviewVisible) {
+                const previewWidth = previewPanel.offsetWidth;
+                availableWidth = window.innerWidth - sidebarWidth - previewWidth - contentPadding * 2;
+            }
+            
+            const maxWidth = Math.max(200, availableWidth);
+            
+            header.classList.add('sticky-active');
+            header.style.left = `${sidebarWidth + contentPadding}px`;
+            header.style.width = `${maxWidth}px`;
+            header.style.maxWidth = `${maxWidth}px`;
+            
+            const headerRight = sidebarWidth + contentPadding + maxWidth;
+            if (headerRight > window.innerWidth) {
+                const adjustedWidth = window.innerWidth - sidebarWidth - contentPadding;
+                header.style.width = `${adjustedWidth}px`;
+                header.style.maxWidth = `${adjustedWidth}px`;
+            }
+        }
+
+        // 初始化滚动到底部按钮
+        function initScrollToBottomButton() {
+            const btn = document.getElementById('scrollToBottomBtn');
+            if (btn) {
+                btn.addEventListener('click', scrollToBottom);
+            }
+        }
+
+        // 更新滚动到底部按钮的显示状态
+        function updateScrollToBottomButton() {
+            const contentArea = document.getElementById('contentArea');
+            const btn = document.getElementById('scrollToBottomBtn');
+            
+            if (!contentArea || !btn) return;
+            
+            const scrollPercentage = (contentArea.scrollTop + contentArea.clientHeight) / contentArea.scrollHeight;
+            
+            if (scrollPercentage < 0.95) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            const contentArea = document.getElementById('contentArea');
+            if (contentArea) {
+                contentArea.scrollTo({
+                    top: contentArea.scrollHeight,
+                    behavior: 'smooth'
+                });
+                
+                setTimeout(() => {
+                    updateScrollToBottomButton();
+                }, 500);
+            }
+        }
+
+        // 滚动到最新添加的项目
+        function scrollToNewItem() {
+            if (lastAddedItemIndex === -1 || !lastAddedItemType) return;
+            
+            const contentArea = document.getElementById('contentArea');
+            if (!contentArea) return;
+            
+            let itemId = '';
+            switch(lastAddedItemType) {
+                case 'input':
+                    itemId = `input-${lastAddedItemIndex}`;
+                    break;
+                case 'install':
+                    itemId = `install-${lastAddedItemIndex}`;
+                    break;
+                case 'batch':
+                    itemId = `batch-${lastAddedItemIndex}`;
+                    break;
+            }
+            
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('new-item');
+                
+                const mainHeader = document.querySelector('.content-header');
+                const mainHeaderHeight = mainHeader ? mainHeader.offsetHeight : 0;
+                const contentPadding = parseInt(getComputedStyle(contentArea).paddingTop) || 20;
+                
+                const scrollPosition = item.offsetTop - mainHeaderHeight - contentPadding;
+                
+                contentArea.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+                
+                setTimeout(() => {
+                    item.classList.remove('new-item');
+                    lastAddedItemIndex = -1;
+                    lastAddedItemType = '';
+                }, 2000);
+            }
+        }
+
+        // 创建新配置文件
+        function createNewConfig() {
+            console.log('创建新配置');
+            if (configData.inputs.length > 0 || configData.installs.length > 0 || configData.batch.length > 0) {
+                if (!confirm('当前配置有未保存的更改。确定要创建新配置吗？这将丢失当前所有更改。')) {
+                    return;
+                }
+            }
+            
+            configData = JSON.parse(JSON.stringify(defaultConfigTemplate));
+            configData.app_id = "new_app_" + Date.now();
+            
+            updateCounters();
+            loadSection('basic');
+            updatePreview();
+            
+            localStorage.removeItem('ai_workflow_config');
+            
+            showNotification('已创建新的配置文件', 'success');
+        }
+
+        // 开始向导
+        function startWizard() {
+            wizardCurrentStep = 1;
+            wizardInputs.length = 0;
+            wizardInstalls.length = 0;
+            wizardBatch.length = 0;
+            wizardUploads.length = 0;
+            
+            document.getElementById('wizard_app_id').value = 'new_app_' + Date.now();
+            document.getElementById('wizard_name').value = '新应用';
+            document.getElementById('wizard_description').value = '这是一个新的AI工作流应用';
+            document.getElementById('wizard_author').value = '';
+            document.getElementById('wizard_email').value = '';
+            document.getElementById('wizard_env_name').value = 'default_env';
+            document.getElementById('wizard_python_version').value = '3.9';
+            document.getElementById('wizard_cuda_version').value = '12.8';
+            document.getElementById('wizard_install_commands').value = '';
+            document.getElementById('wizard_endpoint').value = '';
+            document.getElementById('wizard_work_dir').value = '$HOME/ai_project';
+            document.getElementById('wizard_server_output_file').value = '';
+            document.getElementById('wizard_server_output_dir').value = '/tmp/results';
+            
+            updateWizardInputsList();
+            updateWizardBatchList();
+            updateWizardUploadsList();
+            updateWizardProgress();
+            updateWizardStep();
+            updateWizardSummary();
+            
+            document.getElementById('wizardOverlay').classList.add('active');
+        }
+
+        // 初始化向导
+        function initWizard() {
+            const steps = [
+                { number: 1, label: '基本信息' },
+                { number: 2, label: '输入参数' },
+                { number: 3, label: '环境安装' },
+                { number: 4, label: '推理设置' },
+                { number: 5, label: '文件上传' },
+                { number: 6, label: '完成配置' }
+            ];
+            
+            const progressContainer = document.getElementById('wizardProgress');
+            progressContainer.innerHTML = steps.map(step => `
+                <div class="wizard-progress-step" data-step="${step.number}">
+                    <div class="step-number">${step.number}</div>
+                    <div class="step-label">${step.label}</div>
+                </div>
+            `).join('');
+            
+            updateWizardProgress();
+        }
+
+        // 更新向导进度
+        function updateWizardProgress() {
+            const steps = document.querySelectorAll('.wizard-progress-step');
+            steps.forEach(step => {
+                const stepNum = parseInt(step.getAttribute('data-step'));
+                step.classList.remove('active', 'completed');
+                
+                if (stepNum === wizardCurrentStep) {
+                    step.classList.add('active');
+                } else if (stepNum < wizardCurrentStep) {
+                    step.classList.add('completed');
+                }
+            });
+            
+            document.getElementById('wizardStepIndicator').textContent = `步骤 ${wizardCurrentStep}/${wizardTotalSteps}`;
+        }
+
+        // 更新向导步骤
+        function updateWizardStep() {
+            document.querySelectorAll('.wizard-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            document.getElementById(`wizardStep${wizardCurrentStep}`).classList.add('active');
+            
+            const btnNext = document.getElementById('btnWizardNext');
+            if (wizardCurrentStep === wizardTotalSteps) {
+                btnNext.innerHTML = '完成 <i class="fas fa-check"></i>';
+            } else {
+                btnNext.innerHTML = '下一步 <i class="fas fa-arrow-right"></i>';
+            }
+            
+            updateWizardProgress();
+        }
+
+        // 更新向导输入参数列表
+        function updateWizardInputsList() {
+            const container = document.getElementById('wizardInputsList');
+            if (wizardInputs.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-sliders-h"></i><p>暂无输入参数</p></div>';
+                return;
+            }
+            
+            container.innerHTML = wizardInputs.map((input, index) => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <div class="list-item-title">${escapeHtml(input.label)}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-danger" onclick="removeWizardInput(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>字段名</label>
+                            <input type="text" class="form-control" value="${escapeHtml(input.field_name)}" 
+                                   oninput="wizardInputs[${index}].field_name = this.value; updateWizardSummary()">
+                        </div>
+                        <div class="form-group">
+                            <label>类型</label>
+                            <select class="form-control" onchange="wizardInputs[${index}].type = this.value; toggleWizardFileExtensions(${index}, this.value)">
+                                <option value="text" ${input.type === 'text' ? 'selected' : ''}>文本</option>
+                                <option value="textarea" ${input.type === 'textarea' ? 'selected' : ''}>多行文本</option>
+                                <option value="file" ${input.type === 'file' ? 'selected' : ''}>文件</option>
+                                <option value="select" ${input.type === 'select' ? 'selected' : ''}>下拉选择</option>
+                                <option value="number" ${input.type === 'number' ? 'selected' : ''}>数字</option>
+                            </select>
+                        </div>
+                    </div>
+                    ${input.type === 'file' ? `
+                    <div class="form-group">
+                        <label>文件扩展名</label>
+                        <div class="file-extensions-tags" id="wizard-file-extensions-${index}">
+                            ${input.file_extensions && input.file_extensions.length > 0 ? 
+                                input.file_extensions.map(ext => `
+                                    <div class="file-extension-tag">
+                                        ${escapeHtml(ext)}
+                                        <span class="file-extension-tag-remove" onclick="removeWizardFileExtension(${index}, '${escapeHtml(ext)}')">×</span>
+                                    </div>
+                                `).join('') : 
+                                '<span class="multiselect-placeholder">未设置扩展名（允许所有文件）</span>'
+                            }
+                        </div>
+                        <div class="form-row" style="margin-top: 10px;">
+                            <div class="form-group" style="flex: 1;">
+                                <input type="text" class="form-control" id="wizard-new-extension-${index}" placeholder="例如: jpg, png, mp4">
+                            </div>
+                            <div class="form-group" style="flex: 0;">
+                                <button class="btn btn-sm btn-secondary" onclick="addWizardFileExtension(${index})">
+                                    <i class="fas fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" ${input.required ? 'checked' : ''} 
+                                       onchange="wizardInputs[${index}].required = this.checked; updateWizardSummary()">
+                                必填参数
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 添加向导输入参数
+        function addWizardInput() {
+            wizardInputs.push({
+                label: `参数 ${wizardInputs.length + 1}`,
+                field_name: `param_${wizardInputs.length + 1}`,
+                type: "text",
+                default_value: "",
+                editable: true,
+                required: false,
+                file_extensions: []
+            });
+            
+            updateWizardInputsList();
+            updateWizardSummary();
+        }
+
+        // 移除向导输入参数
+        function removeWizardInput(index) {
+            wizardInputs.splice(index, 1);
+            updateWizardInputsList();
+            updateWizardSummary();
+        }
+
+        // 切换向导文件扩展名显示
+        function toggleWizardFileExtensions(index, type) {
+            const input = wizardInputs[index];
+            input.type = type;
+            
+            if (type === 'file' && !input.file_extensions) {
+                input.file_extensions = [];
+            }
+            
+            // 立即重新渲染该输入项
+            updateWizardInputsList();
+        }
+
+        // 添加向导文件扩展名
+        function addWizardFileExtension(index) {
+            const input = document.getElementById(`wizard-new-extension-${index}`);
+            const ext = input.value.trim().toLowerCase();
+            
+            if (ext && !wizardInputs[index].file_extensions.includes(ext)) {
+                wizardInputs[index].file_extensions.push(ext);
+                input.value = '';
+                updateWizardInputsList();
+            }
+        }
+
+        // 移除向导文件扩展名
+        function removeWizardFileExtension(index, ext) {
+            const extensions = wizardInputs[index].file_extensions;
+            const extIndex = extensions.indexOf(ext);
+            if (extIndex > -1) {
+                extensions.splice(extIndex, 1);
+                updateWizardInputsList();
+            }
+        }
+
+        // 更新向导推理设置列表
+        function updateWizardBatchList() {
+            const container = document.getElementById('wizardBatchList');
+            if (wizardBatch.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-play-circle"></i><p>暂无推理步骤</p></div>';
+                return;
+            }
+            
+            container.innerHTML = wizardBatch.map((batch, index) => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <div class="list-item-title">${escapeHtml(batch.name)}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-danger" onclick="removeWizardBatch(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="batch-type-selector">
+                        <div class="batch-type-option ${batch.type === 'commands' ? 'active' : ''}" onclick="setWizardBatchType(${index}, 'commands')">
+                            <i class="fas fa-terminal"></i> 本地命令
+                        </div>
+                        <div class="batch-type-option ${batch.type === 'cooperation' ? 'active' : ''}" onclick="setWizardBatchType(${index}, 'cooperation')">
+                            <i class="fas fa-handshake"></i> 应用协作
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>步骤名称</label>
+                            <input type="text" class="form-control" value="${escapeHtml(batch.name)}" 
+                                   oninput="wizardBatch[${index}].name = this.value; updateWizardSummary()">
+                        </div>
+                        <div class="form-group">
+                            <label>环境名称</label>
+                            <input type="text" class="form-control" value="${escapeHtml(batch.env_name)}" 
+                                   oninput="wizardBatch[${index}].env_name = this.value">
+                        </div>
+                    </div>
+                    
+                    ${batch.type === 'commands' ? `
+                    <div class="form-group">
+                        <label>执行命令</label>
+                        <textarea class="form-control" rows="3" oninput="wizardBatch[${index}].commands = this.value.split('\\n').filter(cmd => cmd.trim())">${escapeHtml(batch.commands ? batch.commands.join('\\n') : '')}</textarea>
+                    </div>
+                    ` : ''}
+                    
+                    ${batch.type === 'cooperation' ? `
+                    <div class="form-group">
+                        <label>协作应用ID</label>
+                        <input type="text" class="form-control" value="${escapeHtml(batch.cooperation?.app_id || '')}" 
+                               oninput="if (!wizardBatch[${index}].cooperation) wizardBatch[${index}].cooperation = {}; wizardBatch[${index}].cooperation.app_id = this.value">
+                    </div>
+                    <div class="form-group">
+                        <label>协作输入参数</label>
+                        <table class="cooperation-inputs-table">
+                            <thead>
+                                <tr>
+                                    <th class="input-field-name">字段名</th>
+                                    <th class="input-value">值</th>
+                                    <th class="input-actions">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wizard-cooperation-inputs-${index}">
+                                ${renderWizardCooperationInputs(batch.cooperation?.inputs || [], index)}
+                            </tbody>
+                        </table>
+                        <button class="btn btn-sm btn-secondary" style="margin-top: 10px;" onclick="addWizardCooperationInput(${index})">
+                            <i class="fas fa-plus"></i> 添加输入
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // 渲染向导协作输入
+        function renderWizardCooperationInputs(inputs, batchIndex) {
+            if (!inputs || inputs.length === 0) {
+                return '<tr><td colspan="3" style="text-align: center; color: #888;">暂无输入参数</td></tr>';
+            }
+            
+            return inputs.map((input, inputIndex) => `
+                <tr>
+                    <td>
+                        <input type="text" class="options-input" value="${escapeHtml(input.field_name || '')}" 
+                               oninput="wizardBatch[${batchIndex}].cooperation.inputs[${inputIndex}].field_name = this.value">
+                    </td>
+                    <td>
+                        <input type="text" class="options-input" value="${escapeHtml(input.value || '')}" 
+                               oninput="wizardBatch[${batchIndex}].cooperation.inputs[${inputIndex}].value = this.value">
+                        <div class="form-hint">支持: {变量}, file://路径, endpoint://应用</div>
+                    </td>
+                    <td class="input-actions">
+                        <button class="btn btn-sm btn-danger" onclick="removeWizardCooperationInput(${batchIndex}, ${inputIndex})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 添加向导推理设置步骤
+        function addWizardBatch() {
+            wizardBatch.push({
+                name: `步骤 ${wizardBatch.length + 1}`,
+                env_name: document.getElementById('wizard_env_name').value || 'default_env',
+                type: 'commands',
+                commands: ['# 添加执行命令']
+            });
+            
+            updateWizardBatchList();
+            updateWizardSummary();
+        }
+
+        // 移除向导推理设置步骤
+        function removeWizardBatch(index) {
+            wizardBatch.splice(index, 1);
+            updateWizardBatchList();
+            updateWizardSummary();
+        }
+
+        // 设置向导推理设置类型
+        function setWizardBatchType(index, type) {
+            wizardBatch[index].type = type;
+            
+            if (type === 'cooperation' && !wizardBatch[index].cooperation) {
+                wizardBatch[index].cooperation = {
+                    app_id: '',
+                    inputs: []
+                };
+            }
+            
+            updateWizardBatchList();
+        }
+
+        // 添加向导协作输入
+        function addWizardCooperationInput(batchIndex) {
+            if (!wizardBatch[batchIndex].cooperation.inputs) {
+                wizardBatch[batchIndex].cooperation.inputs = [];
+            }
+            
+            wizardBatch[batchIndex].cooperation.inputs.push({
+                field_name: '',
+                value: ''
+            });
+            
+            updateWizardBatchList();
+        }
+
+        // 移除向导协作输入
+        function removeWizardCooperationInput(batchIndex, inputIndex) {
+            wizardBatch[batchIndex].cooperation.inputs.splice(inputIndex, 1);
+            updateWizardBatchList();
+        }
+
+        // 更新向导文件上传列表
+        function updateWizardUploadsList() {
+            const container = document.getElementById('wizardUploadsList');
+            if (wizardUploads.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-upload"></i><p>暂无上传文件</p></div>';
+                return;
+            }
+            
+            container.innerHTML = wizardUploads.map((upload, index) => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <div class="list-item-title">上传文件 ${index + 1}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-danger" onclick="removeWizardUpload(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>本地源路径</label>
+                            <input type="text" class="form-control" value="${escapeHtml(upload.source_path)}" 
+                                   oninput="wizardUploads[${index}].source_path = this.value">
+                        </div>
+                        <div class="form-group">
+                            <label>服务器路径</label>
+                            <input type="text" class="form-control" value="${escapeHtml(upload.server_path)}" 
+                                   oninput="wizardUploads[${index}].server_path = this.value">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 添加上传文件
+        function addWizardUpload() {
+            wizardUploads.push({
+                source_path: '',
+                server_path: ''
+            });
+            
+            updateWizardUploadsList();
+            updateWizardSummary();
+        }
+
+        // 移除上传文件
+        function removeWizardUpload(index) {
+            wizardUploads.splice(index, 1);
+            updateWizardUploadsList();
+            updateWizardSummary();
+        }
+
+        // 更新向导摘要
+        function updateWizardSummary() {
+            document.getElementById('wizard_summary_app_id').textContent = document.getElementById('wizard_app_id').value || '未设置';
+            document.getElementById('wizard_summary_name').textContent = document.getElementById('wizard_name').value || '未设置';
+            document.getElementById('wizard_summary_inputs').textContent = wizardInputs.length + ' 个';
+            document.getElementById('wizard_summary_installs').textContent = document.getElementById('wizard_env_name').value ? '1 个' : '0 个';
+            document.getElementById('wizard_summary_batch').textContent = wizardBatch.length + ' 个';
+            document.getElementById('wizard_summary_uploads').textContent = wizardUploads.length + ' 个';
+        }
+
+        // 完成向导
+        function completeWizard() {
+            const workDir = document.getElementById('wizard_work_dir').value || '$HOME/ai_project';
+            
+            configData = {
+                app_id: document.getElementById('wizard_app_id').value || 'new_app_' + Date.now(),
+                name: document.getElementById('wizard_name').value || '新应用',
+                description: document.getElementById('wizard_description').value || '',
+                author: document.getElementById('wizard_author').value || '',
+                homepage: '',
+                email: document.getElementById('wizard_email').value || '',
+                endpoint: document.getElementById('wizard_endpoint').value || '',
+                inputs: wizardInputs.map(input => ({
+                    label: input.label,
+                    field_name: input.field_name,
+                    type: input.type,
+                    default_value: "",
+                    editable: true,
+                    required: input.required || false,
+                    file_extensions: input.file_extensions || [],
+                    options: input.type === 'select' ? [] : undefined
+                })),
+                variables: {
+                    work_dir: workDir
+                },
+                server_output_file: document.getElementById('wizard_server_output_file').value || '',
+                server_output_dir: document.getElementById('wizard_server_output_dir').value || '/tmp/results',
+                model_path: '$HOME/.cache/model',
+                installs: [],
+                batch: [],
+                uploads: wizardUploads
+            };
+            
+            const envName = document.getElementById('wizard_env_name').value;
+            const pythonVersion = document.getElementById('wizard_python_version').value;
+            const cudaVersion = document.getElementById('wizard_cuda_version').value || '12.8'; // 默认值
+            const installCommands = document.getElementById('wizard_install_commands').value;
+            
+            if (envName) {
+                configData.installs.push({
+                    env_name: envName,
+                    python_version: pythonVersion || '3.9',
+                    cuda_version: cudaVersion,
+                    commands: installCommands ? installCommands.split('\n').filter(cmd => cmd.trim()) : ['# 安装命令待补充']
+                });
+            }
+            
+            configData.batch = wizardBatch.map(batch => {
+                if (batch.type === 'commands') {
+                    return {
+                        name: batch.name,
+                        env_name: batch.env_name || envName || 'default_env',
+                        commands: batch.commands || ['# 执行命令待补充']
+                    };
+                } else if (batch.type === 'cooperation') {
+                    return {
+                        name: batch.name,
+                        env_name: batch.env_name || envName || 'default_env',
+                        cooperation: batch.cooperation
+                    };
+                }
+                return batch;
+            });
+            
+            updateCounters();
+            loadSection('basic');
+            updatePreview();
+            document.getElementById('wizardOverlay').classList.remove('active');
+            
+            showNotification('已通过向导创建新的配置文件', 'success');
+        }
+
+        // 加载部分内容
+        function loadSection(section) {
+            activeSection = section;
+            
+            document.querySelectorAll('.config-nav-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-section') === section);
+            });
+            
+            const titles = {
+                'basic': '基本信息',
+                'inputs': '输入参数',
+                'variables': '环境变量',
+                'installs': '环境安装',
+                'batch': '推理设置', // 修改标题
+                'uploads': '文件上传',
+                'advanced': '高级设置'
+            };
+            document.getElementById('sectionTitle').textContent = titles[section];
+            
+            const contentArea = document.getElementById('contentArea');
+            
+            switch(section) {
+                case 'basic':
+                    contentArea.innerHTML = renderBasicSection();
+                    break;
+                case 'inputs':
+                    contentArea.innerHTML = renderInputsSection();
+                    break;
+                case 'variables':
+                    contentArea.innerHTML = renderVariablesSection();
+                    break;
+                case 'installs':
+                    contentArea.innerHTML = renderInstallsSection();
+                    break;
+                case 'batch':
+                    contentArea.innerHTML = renderBatchSection();
+                    break;
+                case 'uploads':
+                    contentArea.innerHTML = renderUploadsSection();
+                    break;
+                case 'advanced':
+                    contentArea.innerHTML = renderAdvancedSection();
+                    break;
+            }
+            
+            contentArea.scrollTop = 0;
+            initSectionInteractions(section);
+            
+            setTimeout(() => {
+                handleContentScroll();
+                updateScrollToBottomButton();
+            }, 100);
+        }
+
+        // 渲染基本信息部分
+        function renderBasicSection() {
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-info-circle"></i> 应用信息</h3>
+                        <div class="header-actions">
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        <div class="form-group">
+                            <label for="app_id">应用ID <span class="tooltip">(?)
+                                <span class="tooltip-text">应用的唯一标识符，用于在系统中识别此配置</span>
+                            </span></label>
+                            <input type="text" id="app_id" class="form-control" value="${escapeHtml(configData.app_id)}" 
+                                   oninput="updateConfigValue('app_id', this.value)">
+                            <div class="form-hint">应用的唯一标识符，使用小写字母和下划线</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">应用名称</label>
+                            <input type="text" id="name" class="form-control" value="${escapeHtml(configData.name)}" 
+                                   oninput="updateConfigValue('name', this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">描述</label>
+                            <textarea id="description" class="form-control" rows="4"
+                                      oninput="updateConfigValue('description', this.value)">${escapeHtml(configData.description)}</textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="author">作者</label>
+                                <input type="text" id="author" class="form-control" value="${escapeHtml(configData.author)}" 
+                                       oninput="updateConfigValue('author', this.value)">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">邮箱</label>
+                                <input type="email" id="email" class="form-control" value="${escapeHtml(configData.email)}" 
+                                       oninput="updateConfigValue('email', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="homepage">项目主页</label>
+                            <input type="url" id="homepage" class="form-control" value="${escapeHtml(configData.homepage)}" 
+                                   oninput="updateConfigValue('homepage', this.value)">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // HTML转义函数，防止XSS攻击
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 渲染输入参数部分
+        function renderInputsSection() {
+            let inputsHtml = '';
+            
+            if (configData.inputs.length === 0) {
+                inputsHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-sliders-h"></i>
+                        <h3>暂无输入参数</h3>
+                        <p>点击下方按钮添加第一个输入参数</p>
+                    </div>
+                `;
+            } else {
+                configData.inputs.forEach((input, index) => {
+                    inputsHtml += renderInputItem(input, index);
+                });
+            }
+            
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-sliders-h"></i> 输入参数配置</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-secondary" id="addInputBtn">
+                                <i class="fas fa-plus"></i> 添加参数
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        ${inputsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染单个输入参数项 - 修复：确保文件类型参数创建时显示文件扩展名设置选项
+        function renderInputItem(input, index) {
+            const isSelectType = input.type === 'select';
+            const isFileType = input.type === 'file';
+            const optionsJson = isSelectType ? JSON.stringify(input.options, null, 2) : '[]';
+            
+            // 确保文件类型有file_extensions数组
+            if (isFileType && !input.file_extensions) {
+                input.file_extensions = [];
+            }
+            
+            // 立即显示文件扩展名设置
+            const fileExtensionHtml = isFileType ? `
+                <div class="form-group file-extensions-group">
+                    <label>文件扩展名</label>
+                    <div class="file-extensions-tags" id="file-extensions-${index}">
+                        ${input.file_extensions && input.file_extensions.length > 0 ? 
+                            input.file_extensions.map(ext => `
+                                <div class="file-extension-tag">
+                                    ${escapeHtml(ext)}
+                                    <span class="file-extension-tag-remove" onclick="removeFileExtension(${index}, '${escapeHtml(ext)}')">×</span>
+                                </div>
+                            `).join('') : 
+                            '<span class="multiselect-placeholder">未设置扩展名（允许所有文件）</span>'
+                        }
+                    </div>
+                    <div class="form-row" style="margin-top: 10px;">
+                        <div class="form-group" style="flex: 1;">
+                            <input type="text" class="form-control" id="new-extension-${index}" placeholder="例如: jpg, png, mp4">
+                        </div>
+                        <div class="form-group" style="flex: 0;">
+                            <button class="btn btn-sm btn-secondary" onclick="addFileExtension(${index})">
+                                <i class="fas fa-plus"></i> 添加
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+            
+            return `
+                <div class="list-item" id="input-${index}">
+                    <div class="list-item-header">
+                        <div class="list-item-title">${escapeHtml(input.label || '未命名参数')}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="moveInputUp(${index})" ${index === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="moveInputDown(${index})" ${index === configData.inputs.length - 1 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="removeInput(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>显示标签</label>
+                            <input type="text" class="form-control" value="${escapeHtml(input.label)}" 
+                                   oninput="updateInputField(${index}, 'label', this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>字段名</label>
+                            <input type="text" class="form-control" value="${escapeHtml(input.field_name)}" 
+                                   oninput="updateInputField(${index}, 'field_name', this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>参数类型</label>
+                            <select class="form-control" onchange="handleInputTypeChange(${index}, this.value)">
+                                <option value="text" ${input.type === 'text' ? 'selected' : ''}>文本</option>
+                                <option value="number" ${input.type === 'number' ? 'selected' : ''}>数字</option>
+                                <option value="textarea" ${input.type === 'textarea' ? 'selected' : ''}>多行文本</option>
+                                <option value="file" ${input.type === 'file' ? 'selected' : ''}>文件</option>
+                                <option value="switch" ${input.type === 'switch' ? 'selected' : ''}>开关</option>
+                                <option value="select" ${input.type === 'select' ? 'selected' : ''}>下拉选择</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>默认值</label>
+                            <input type="text" class="form-control" value="${escapeHtml(input.default_value)}" 
+                                   oninput="updateInputField(${index}, 'default_value', this.value)">
+                        </div>
+                    </div>
+                    
+                    ${fileExtensionHtml}
+                    
+                    <div class="form-group ${isSelectType ? '' : 'select-options'}" style="${isSelectType ? '' : 'display: none;'}" id="options-container-${index}">
+                        <label>下拉选项配置</label>
+                        <div class="options-editor-toggle">
+                            <div class="options-editor-tab active" onclick="switchOptionsEditorTab(${index}, 'table')">表格编辑</div>
+                            <div class="options-editor-tab" onclick="switchOptionsEditorTab(${index}, 'json')">JSON编辑</div>
+                        </div>
+                        <div class="options-editor-content">
+                            <div id="options-table-${index}">
+                                <table class="options-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="option-label">显示标签</th>
+                                            <th class="option-value">选项值</th>
+                                            <th class="option-actions">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="options-table-body-${index}">
+                                        ${renderOptionsTableBody(input.options, index)}
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-sm btn-secondary" style="margin-top: 10px;" onclick="addOptionRow(${index})">
+                                    <i class="fas fa-plus"></i> 添加选项
+                                </button>
+                            </div>
+                            <div id="options-json-${index}" style="display: none;">
+                                <textarea class="form-control option-json-input" id="options-json-input-${index}" 
+                                          oninput="updateOptionsFromJson(${index}, this.value)">${escapeHtml(optionsJson)}</textarea>
+                                <div class="option-json-hint">
+                                    格式示例：<code>[{"label": "选项1", "value": "value1"}, {"label": "选项2", "value": "value2"}]</code>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-hint">下拉选项的显示标签和对应值的配对</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" ${input.editable ? 'checked' : ''} 
+                                       onchange="updateInputField(${index}, 'editable', this.checked)">
+                                用户可编辑
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" ${input.required ? 'checked' : ''} 
+                                       onchange="updateInputField(${index}, 'required', this.checked)">
+                                必填参数
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 处理输入类型变化 - 新增函数，专门处理类型切换时的UI更新
+        function handleInputTypeChange(index, newType) {
+            // 更新数据
+            configData.inputs[index].type = newType;
+            
+            // 确保文件类型有file_extensions数组
+            if (newType === 'file' && !configData.inputs[index].file_extensions) {
+                configData.inputs[index].file_extensions = [];
+            }
+            
+            // 重新渲染整个输入项
+            reRenderInputItem(index);
+            
+            // 更新预览
+            updatePreview();
+        }
+
+        // 重新渲染单个输入项 - 新增函数，用于动态更新UI
+        function reRenderInputItem(index) {
+            const input = configData.inputs[index];
+            const item = document.getElementById(`input-${index}`);
+            
+            if (item) {
+                const newItemHtml = renderInputItem(input, index);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = newItemHtml;
+                
+                // 替换现有元素
+                item.parentNode.replaceChild(tempDiv.firstChild, item);
+                
+                // 重新初始化交互
+                if (input.type === 'select') {
+                    initOptionsEditor(index);
+                }
+            }
+        }
+
+        // 添加文件扩展名
+        function addFileExtension(index) {
+            const input = document.getElementById(`new-extension-${index}`);
+            const ext = input.value.trim().toLowerCase();
+            
+            if (ext) {
+                if (!configData.inputs[index].file_extensions) {
+                    configData.inputs[index].file_extensions = [];
+                }
+                
+                if (!configData.inputs[index].file_extensions.includes(ext)) {
+                    configData.inputs[index].file_extensions.push(ext);
+                    input.value = '';
+                    updatePreview();
+                    updateFileExtensionsDisplay(index);
+                }
+            }
+        }
+
+        // 移除文件扩展名
+        function removeFileExtension(index, ext) {
+            const extensions = configData.inputs[index].file_extensions;
+            if (extensions) {
+                const extIndex = extensions.indexOf(ext);
+                if (extIndex > -1) {
+                    extensions.splice(extIndex, 1);
+                    updatePreview();
+                    updateFileExtensionsDisplay(index);
+                }
+            }
+        }
+
+        // 更新文件扩展名显示
+        function updateFileExtensionsDisplay(index) {
+            const container = document.getElementById(`file-extensions-${index}`);
+            const input = configData.inputs[index];
+            
+            if (container && input.type === 'file') {
+                container.innerHTML = input.file_extensions && input.file_extensions.length > 0 ? 
+                    input.file_extensions.map(ext => `
+                        <div class="file-extension-tag">
+                            ${escapeHtml(ext)}
+                            <span class="file-extension-tag-remove" onclick="removeFileExtension(${index}, '${escapeHtml(ext)}')">×</span>
+                        </div>
+                    `).join('') : 
+                    '<span class="multiselect-placeholder">未设置扩展名（允许所有文件）</span>';
+            }
+        }
+
+        // 切换选项字段的显示 - 修复：正确处理文件类型切换
+        function toggleOptionsField(index, type) {
+            const optionsContainer = document.getElementById(`options-container-${index}`);
+            if (optionsContainer) {
+                if (type === 'select') {
+                    optionsContainer.style.display = 'block';
+                    
+                    const input = configData.inputs[index];
+                    if (!input.options || !Array.isArray(input.options)) {
+                        input.options = [];
+                    }
+                    
+                    if (input.options.length > 0 && typeof input.options[0] === 'string') {
+                        input.options = input.options.map(option => ({
+                            label: option,
+                            value: option
+                        }));
+                    }
+                    
+                    setTimeout(() => {
+                        const tableBody = document.getElementById(`options-table-body-${index}`);
+                        if (tableBody) {
+                            tableBody.innerHTML = renderOptionsTableBody(input.options, index);
+                        }
+                    }, 100);
+                } else {
+                    optionsContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // 切换选项编辑器标签页
+        function switchOptionsEditorTab(inputIndex, tab) {
+            const tableContainer = document.getElementById(`options-table-${inputIndex}`);
+            const jsonContainer = document.getElementById(`options-json-${inputIndex}`);
+            const tabs = document.querySelectorAll(`#options-container-${inputIndex} .options-editor-tab`);
+            
+            tabs.forEach(tabElement => {
+                tabElement.classList.remove('active');
+            });
+            
+            if (tab === 'table') {
+                document.querySelector(`#options-container-${inputIndex} .options-editor-tab:first-child`).classList.add('active');
+                tableContainer.style.display = 'block';
+                jsonContainer.style.display = 'none';
+                
+                const input = configData.inputs[inputIndex];
+                const tableBody = document.getElementById(`options-table-body-${inputIndex}`);
+                if (tableBody) {
+                    tableBody.innerHTML = renderOptionsTableBody(input.options, inputIndex);
+                }
+            } else {
+                document.querySelector(`#options-container-${inputIndex} .options-editor-tab:last-child`).classList.add('active');
+                tableContainer.style.display = 'none';
+                jsonContainer.style.display = 'block';
+                
+                const input = configData.inputs[inputIndex];
+                const optionsJson = JSON.stringify(input.options, null, 2);
+                const jsonInput = document.getElementById(`options-json-input-${inputIndex}`);
+                if (jsonInput) {
+                    jsonInput.value = optionsJson;
+                }
+            }
+        }
+
+        // 渲染选项表格内容
+        function renderOptionsTableBody(options, inputIndex) {
+            if (!options || !Array.isArray(options)) {
+                return '<tr><td colspan="3" style="text-align: center; color: #888;">暂无选项，请点击"添加选项"按钮</td></tr>';
+            }
+            
+            return options.map((option, optionIndex) => {
+                const label = escapeHtml(option.label || '');
+                const value = escapeHtml(option.value || '');
+                return `
+                    <tr id="option-row-${inputIndex}-${optionIndex}">
+                        <td>
+                            <input type="text" class="options-input option-label-input" 
+                                   value="${label}" 
+                                   oninput="updateOptionField(${inputIndex}, ${optionIndex}, 'label', this.value)">
+                        </td>
+                        <td>
+                            <input type="text" class="options-input option-value-input" 
+                                   value="${value}" 
+                                   oninput="updateOptionField(${inputIndex}, ${optionIndex}, 'value', this.value)">
+                        </td>
+                        <td class="option-actions">
+                            <button class="btn btn-sm btn-danger" onclick="removeOption(${inputIndex}, ${optionIndex})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 初始化选项编辑器
+        function initOptionsEditor(index) {
+            // 初始化选项编辑器的交互
+            const input = configData.inputs[index];
+            if (input.type === 'select') {
+                const tableBody = document.getElementById(`options-table-body-${index}`);
+                if (tableBody) {
+                    tableBody.innerHTML = renderOptionsTableBody(input.options, index);
+                }
+            }
+        }
+
+        // 添加选项行
+        function addOptionRow(inputIndex) {
+            const input = configData.inputs[inputIndex];
+            if (!input.options || !Array.isArray(input.options)) {
+                input.options = [];
+            }
+            
+            const newOption = {
+                label: `选项${input.options.length + 1}`,
+                value: `value${input.options.length + 1}`
+            };
+            
+            input.options.push(newOption);
+            updatePreview();
+            
+            const tableBody = document.getElementById(`options-table-body-${inputIndex}`);
+            if (tableBody) {
+                tableBody.innerHTML = renderOptionsTableBody(input.options, inputIndex);
+            }
+        }
+
+        // 更新选项字段
+        function updateOptionField(inputIndex, optionIndex, field, value) {
+            const input = configData.inputs[inputIndex];
+            if (input.options && input.options[optionIndex]) {
+                input.options[optionIndex][field] = value;
+                updatePreview();
+            }
+        }
+
+        // 删除选项
+        function removeOption(inputIndex, optionIndex) {
+            const input = configData.inputs[inputIndex];
+            if (input.options && input.options[optionIndex]) {
+                input.options.splice(optionIndex, 1);
+                updatePreview();
+                
+                const tableBody = document.getElementById(`options-table-body-${inputIndex}`);
+                if (tableBody) {
+                    tableBody.innerHTML = renderOptionsTableBody(input.options, inputIndex);
+                }
+            }
+        }
+
+        // 从JSON更新选项
+        function updateOptionsFromJson(inputIndex, jsonText) {
+            try {
+                const input = configData.inputs[inputIndex];
+                const parsedOptions = JSON.parse(jsonText);
+                
+                if (!Array.isArray(parsedOptions)) {
+                    throw new Error('选项必须是数组');
+                }
+                
+                for (let i = 0; i < parsedOptions.length; i++) {
+                    const option = parsedOptions[i];
+                    if (typeof option !== 'object' || option === null) {
+                        throw new Error(`第${i+1}个选项不是有效对象`);
+                    }
+                    if (!option.hasOwnProperty('label') || !option.hasOwnProperty('value')) {
+                        throw new Error(`第${i+1}个选项缺少label或value属性`);
+                    }
+                }
+                
+                input.options = parsedOptions;
+                updatePreview();
+                showNotification('选项已更新', 'success');
+            } catch (error) {
+                console.error('JSON解析错误:', error);
+                showNotification(`JSON格式错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 渲染环境变量部分
+        function renderVariablesSection() {
+            const variables = configData.variables;
+            const variableKeys = Object.keys(variables);
+            
+            let variablesHtml = '';
+            
+            if (variableKeys.length === 0) {
+                variablesHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-code"></i>
+                        <h3>暂无环境变量</h3>
+                        <p>点击下方按钮添加第一个环境变量</p>
+                    </div>
+                `;
+            } else {
+                variableKeys.forEach((key, index) => {
+                    variablesHtml += `
+                        <div class="variable-item">
+                            <div class="variable-key">
+                                <input type="text" class="form-control" value="${escapeHtml(key)}" 
+                                       oninput="updateVariableKey(${index}, this.value)">
+                            </div>
+                            <div class="variable-value">
+                                <input type="text" class="form-control" value="${escapeHtml(variables[key])}" 
+                                       oninput="updateVariableValue('${escapeHtml(key)}', this.value)">
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-danger" onclick="removeVariable('${escapeHtml(key)}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-code"></i> 环境变量配置</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-secondary" id="addVariableBtn">
+                                <i class="fas fa-plus"></i> 添加变量
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        <div class="variables-editor">
+                            ${variablesHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染环境安装部分
+        function renderInstallsSection() {
+            let installsHtml = '';
+            
+            if (configData.installs.length === 0) {
+                installsHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-download"></i>
+                        <h3>暂无环境安装配置</h3>
+                        <p>点击下方按钮添加第一个环境安装配置</p>
+                    </div>
+                `;
+            } else {
+                configData.installs.forEach((install, index) => {
+                    installsHtml += renderInstallItem(install, index);
+                });
+            }
+            
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-download"></i> 环境安装配置</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-secondary" id="addInstallBtn">
+                                <i class="fas fa-plus"></i> 添加环境
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        <div class="form-hint">
+                            <i class="fas fa-info-circle"></i> 
+                            在此处定义的环境将可以在"推理设置"部分的下拉菜单中选择
+                        </div>
+                        ${installsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染单个环境安装项
+        function renderInstallItem(install, index) {
+            const usedInBatch = configData.batch.filter(batch => batch.env_name === install.env_name).length;
+            
+            return `
+                <div class="list-item" id="install-${index}">
+                    <div class="list-item-header">
+                        <div class="list-item-title">
+                            环境: ${escapeHtml(install.env_name)}
+                            ${usedInBatch > 0 ? `<span class="env-status defined">被 ${usedInBatch} 个步骤使用</span>` : ''}
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="moveInstallUp(${index})" ${index === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="moveInstallDown(${index})" ${index === configData.installs.length - 1 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="removeInstall(${index})" ${usedInBatch > 0 ? 'title="此环境正在被使用，删除前请先修改推理设置步骤"' : ''}>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>环境名称</label>
+                            <input type="text" class="form-control" value="${escapeHtml(install.env_name)}" 
+                                   oninput="updateInstallField(${index}, 'env_name', this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Python版本</label>
+                            <input type="text" class="form-control" value="${escapeHtml(install.python_version)}" 
+                                   oninput="updateInstallField(${index}, 'python_version', this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>CUDA版本</label>
+                            <input type="text" class="form-control" value="${escapeHtml(install.cuda_version || '12.8')}" 
+                                   oninput="updateInstallField(${index}, 'cuda_version', this.value)">
+                            <div class="form-hint">CUDA版本，如果不需要GPU可以留空</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>安装命令</label>
+                        <div class="code-editor-container">
+                            <textarea id="install-commands-${index}" class="form-control" style="display: none;">${escapeHtml(install.commands.join('\n'))}</textarea>
+                        </div>
+                        <div class="form-hint">每行一个命令，支持多行脚本</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染推理设置部分
+        function renderBatchSection() {
+            let batchHtml = '';
+            
+            if (configData.batch.length === 0) {
+                batchHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-play-circle"></i>
+                        <h3>暂无推理设置</h3>
+                        <p>点击下方按钮添加第一个推理步骤</p>
+                    </div>
+                `;
+            } else {
+                configData.batch.forEach((batch, index) => {
+                    batchHtml += renderBatchItem(batch, index);
+                });
+            }
+            
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-play-circle"></i> 推理设置配置</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-secondary" id="addBatchBtn">
+                                <i class="fas fa-plus"></i> 添加步骤
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        ${batchHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染单个推理设置项
+        function renderBatchItem(batch, index) {
+            const hasCooperation = batch.cooperation && Object.keys(batch.cooperation).length > 0;
+            const batchType = hasCooperation ? 'cooperation' : 'commands';
+            
+            return `
+                <div class="list-item" id="batch-${index}">
+                    <div class="list-item-header">
+                        <div class="list-item-title">${escapeHtml(batch.name)}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="moveBatchUp(${index})" ${index === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="moveBatchDown(${index})" ${index === configData.batch.length - 1 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="removeBatch(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="batch-type-selector">
+                        <div class="batch-type-option ${batchType === 'commands' ? 'active' : ''}" onclick="setBatchType(${index}, 'commands')">
+                            <i class="fas fa-terminal"></i> 本地命令
+                        </div>
+                        <div class="batch-type-option ${batchType === 'cooperation' ? 'active' : ''}" onclick="setBatchType(${index}, 'cooperation')">
+                            <i class="fas fa-handshake"></i> 应用协作
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>步骤名称</label>
+                            <input type="text" class="form-control" value="${escapeHtml(batch.name)}" 
+                                   oninput="updateBatchField(${index}, 'name', this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            ${generateEnvSelector(batch.env_name, index)}
+                        </div>
+                    </div>
+                    
+                    ${batchType === 'commands' ? `
+                    <div class="form-group">
+                        <label>必需输入参数</label>
+                        ${generateMultiselect(batch.required_inputs, index)}
+                        <div class="form-hint">从输入参数列表中选择必需参数</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>执行命令</label>
+                        <div class="code-editor-container">
+                            <textarea id="batch-commands-${index}" class="form-control" style="display: none;">${escapeHtml(batch.commands ? batch.commands.join('\n') : '')}</textarea>
+                        </div>
+                        <div class="form-hint">每行一个命令，支持多行脚本</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${batchType === 'cooperation' ? `
+                    <div class="form-group">
+                        <label>协作应用ID</label>
+                        <input type="text" class="form-control" value="${escapeHtml(batch.cooperation.app_id || '')}" 
+                               oninput="updateCooperationField(${index}, 'app_id', this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>协作输入参数</label>
+                        <table class="cooperation-inputs-table">
+                            <thead>
+                                <tr>
+                                    <th class="input-field-name">字段名</th>
+                                    <th class="input-value">值</th>
+                                    <th class="input-actions">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cooperation-inputs-body-${index}">
+                                ${renderCooperationInputs(batch.cooperation.inputs || [], index)}
+                            </tbody>
+                        </table>
+                        <button class="btn btn-sm btn-secondary" style="margin-top: 10px;" onclick="addCooperationInput(${index})">
+                            <i class="fas fa-plus"></i> 添加输入
+                        </button>
+                        <div class="form-hint">值支持: {变量}, file://路径, endpoint://应用ID</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // 渲染协作输入参数
+        function renderCooperationInputs(inputs, batchIndex) {
+            if (!inputs || inputs.length === 0) {
+                return '<tr><td colspan="3" style="text-align: center; color: #888;">暂无输入参数</td></tr>';
+            }
+            
+            return inputs.map((input, inputIndex) => `
+                <tr>
+                    <td>
+                        <input type="text" class="options-input" value="${escapeHtml(input.field_name || '')}" 
+                               oninput="updateCooperationInputField(${batchIndex}, ${inputIndex}, 'field_name', this.value)">
+                    </td>
+                    <td>
+                        <input type="text" class="options-input" value="${escapeHtml(input.value || '')}" 
+                               oninput="updateCooperationInputField(${batchIndex}, ${inputIndex}, 'value', this.value)">
+                    </td>
+                    <td class="input-actions">
+                        <button class="btn btn-sm btn-danger" onclick="removeCooperationInput(${batchIndex}, ${inputIndex})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染文件上传部分
+        function renderUploadsSection() {
+            let uploadsHtml = '';
+            
+            if (!configData.uploads || configData.uploads.length === 0) {
+                uploadsHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-upload"></i>
+                        <h3>暂无文件上传配置</h3>
+                        <p>点击下方按钮添加第一个上传文件配置</p>
+                    </div>
+                `;
+            } else {
+                configData.uploads.forEach((upload, index) => {
+                    uploadsHtml += renderUploadItem(upload, index);
+                });
+            }
+            
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-upload"></i> 文件上传配置</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-secondary" id="addUploadBtn">
+                                <i class="fas fa-plus"></i> 添加上传
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        <div class="form-hint">
+                            <i class="fas fa-info-circle"></i> 
+                            配置需要上传到服务器的本地文件，这些文件将在应用执行前被上传到指定位置
+                        </div>
+                        ${uploadsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染单个文件上传项
+        function renderUploadItem(upload, index) {
+            return `
+                <div class="list-item" id="upload-${index}">
+                    <div class="list-item-header">
+                        <div class="list-item-title">上传文件 ${index + 1}</div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="moveUploadUp(${index})" ${index === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="moveUploadDown(${index})" ${index === configData.uploads.length - 1 ? 'disabled' : ''}>
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="removeUpload(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>本地源路径</label>
+                            <input type="text" class="form-control" value="${escapeHtml(upload.source_path)}" 
+                                   oninput="updateUploadField(${index}, 'source_path', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>服务器路径</label>
+                            <input type="text" class="form-control" value="${escapeHtml(upload.server_path)}" 
+                                   oninput="updateUploadField(${index}, 'server_path', this.value)">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染高级设置部分
+        function renderAdvancedSection() {
+            return `
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3><i class="fas fa-tools"></i> 高级设置</h3>
+                        <div class="header-actions">
+                        </div>
+                    </div>
+                    <div class="form-section-content">
+                        <div class="form-group">
+                            <label for="endpoint">最终输出指令 (endpoint)</label>
+                            <input type="text" id="endpoint" class="form-control" value="${escapeHtml(configData.endpoint || '')}" 
+                                   oninput="updateConfigValue('endpoint', this.value)">
+                            <div class="form-hint">程序运行完毕后的最终结果输出指令，可以使用 {变量} 引用</div>
+                            <div class="option-example">示例: echo "{server_output_file}" 或 cat "{server_output_dir}/result.txt"</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="server_output_file">服务器输出文件 (server_output_file)</label>
+                            <input type="text" id="server_output_file" class="form-control" value="${escapeHtml(configData.server_output_file)}" 
+                                   oninput="updateConfigValue('server_output_file', this.value)">
+                            <div class="form-hint">指定服务器输出文件的路径，留空则不使用</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="server_output_dir">服务器输出目录 (server_output_dir)</label>
+                            <input type="text" id="server_output_dir" class="form-control" value="${escapeHtml(configData.server_output_dir)}" 
+                                   oninput="updateConfigValue('server_output_dir', this.value)">
+                            <div class="form-hint">指定服务器输出文件的目录路径</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model_path">模型路径 (model_path)</label>
+                            <input type="text" id="model_path" class="form-control" value="${escapeHtml(configData.model_path)}" 
+                                   oninput="updateConfigValue('model_path', this.value)">
+                            <div class="form-hint">模型文件的本地存储路径，支持环境变量如 $HOME</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="work_dir">工作目录变量 (work_dir)</label>
+                            <input type="text" id="work_dir" class="form-control" value="${escapeHtml(configData.variables.work_dir || '$HOME/ai_project')}" 
+                                   oninput="updateVariableValue('work_dir', this.value)">
+                            <div class="form-hint">工作目录的环境变量值</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 初始化部分交互
+        function initSectionInteractions(section) {
+            console.log('初始化部分交互:', section);
+            
+            switch(section) {
+                case 'inputs':
+                    const addInputBtn = document.getElementById('addInputBtn');
+                    if (addInputBtn) {
+                        addInputBtn.addEventListener('click', addInput);
+                    }
+                    
+                    // 初始化文件扩展名显示
+                    configData.inputs.forEach((input, index) => {
+                        if (input.type === 'file') {
+                            updateFileExtensionsDisplay(index);
+                        }
+                        if (input.type === 'select') {
+                            initOptionsEditor(index);
+                        }
+                    });
+                    break;
+                case 'variables':
+                    const addVariableBtn = document.getElementById('addVariableBtn');
+                    if (addVariableBtn) {
+                        addVariableBtn.addEventListener('click', addVariable);
+                    }
+                    break;
+                case 'installs':
+                    const addInstallBtn = document.getElementById('addInstallBtn');
+                    if (addInstallBtn) {
+                        addInstallBtn.addEventListener('click', addInstall);
+                    }
+                    
+                    configData.installs.forEach((install, index) => {
+                        initCodeEditor(`install-commands-${index}`, index, 'install');
+                    });
+                    break;
+                case 'batch':
+                    const addBatchBtn = document.getElementById('addBatchBtn');
+                    if (addBatchBtn) {
+                        addBatchBtn.addEventListener('click', addBatch);
+                    }
+                    
+                    configData.batch.forEach((batch, index) => {
+                        if (batch.commands) {
+                            initCodeEditor(`batch-commands-${index}`, index, 'batch');
+                        }
+                        if (batch.required_inputs) {
+                            initMultiselect(index);
+                        }
+                    });
+                    break;
+                case 'uploads':
+                    const addUploadBtn = document.getElementById('addUploadBtn');
+                    if (addUploadBtn) {
+                        addUploadBtn.addEventListener('click', addUpload);
+                    }
+                    break;
+            }
+        }
+
+        // 获取已定义的环境名称列表
+        function getDefinedEnvNames() {
+            return configData.installs.map(install => install.env_name);
+        }
+
+        // 检查环境是否已定义
+        function isEnvDefined(envName) {
+            return getDefinedEnvNames().includes(envName);
+        }
+
+        // 生成环境选择器的HTML
+        function generateEnvSelector(selectedEnv, index) {
+            const definedEnvs = getDefinedEnvNames();
+            let options = '';
+            
+            definedEnvs.forEach(env => {
+                options += `<option value="${escapeHtml(env)}" ${env === selectedEnv ? 'selected' : ''}>${escapeHtml(env)}</option>`;
+            });
+            
+            if (selectedEnv && !definedEnvs.includes(selectedEnv)) {
+                options += `<option value="${escapeHtml(selectedEnv)}" selected>${escapeHtml(selectedEnv)} (未定义)</option>`;
+            }
+            
+            options += `<option value="">-- 选择环境 --</option>`;
+            
+            return `
+                <div class="env-selector-container">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">环境名称</label>
+                    </div>
+                    <select class="form-control" onchange="updateBatchEnvName(${index}, this.value)">
+                        ${options}
+                    </select>
+                </div>
+            `;
+        }
+
+        // 设置推理设置类型
+        function setBatchType(index, type) {
+            const batchItem = configData.batch[index];
+            
+            if (type === 'commands') {
+                if (batchItem.cooperation) {
+                    delete batchItem.cooperation;
+                }
+                if (!batchItem.commands) {
+                    batchItem.commands = ['# 执行命令待补充'];
+                }
+            } else if (type === 'cooperation') {
+                if (batchItem.commands) {
+                    delete batchItem.commands;
+                }
+                if (!batchItem.cooperation) {
+                    batchItem.cooperation = {
+                        app_id: '',
+                        inputs: []
+                    };
+                }
+                if (batchItem.required_inputs) {
+                    delete batchItem.required_inputs;
+                }
+            }
+            
+            loadSection('batch');
+            updatePreview();
+        }
+
+        // 更新协作字段
+        function updateCooperationField(batchIndex, field, value) {
+            if (!configData.batch[batchIndex].cooperation) {
+                configData.batch[batchIndex].cooperation = {};
+            }
+            configData.batch[batchIndex].cooperation[field] = value;
+            updatePreview();
+        }
+
+        // 更新协作输入字段
+        function updateCooperationInputField(batchIndex, inputIndex, field, value) {
+            const cooperation = configData.batch[batchIndex].cooperation;
+            if (cooperation && cooperation.inputs && cooperation.inputs[inputIndex]) {
+                cooperation.inputs[inputIndex][field] = value;
+                updatePreview();
+            }
+        }
+
+        // 添加协作输入
+        function addCooperationInput(batchIndex) {
+            const cooperation = configData.batch[batchIndex].cooperation;
+            if (cooperation) {
+                if (!cooperation.inputs) {
+                    cooperation.inputs = [];
+                }
+                cooperation.inputs.push({
+                    field_name: '',
+                    value: ''
+                });
+                loadSection('batch');
+                updatePreview();
+            }
+        }
+
+        // 移除协作输入
+        function removeCooperationInput(batchIndex, inputIndex) {
+            const cooperation = configData.batch[batchIndex].cooperation;
+            if (cooperation && cooperation.inputs) {
+                cooperation.inputs.splice(inputIndex, 1);
+                loadSection('batch');
+                updatePreview();
+            }
+        }
+
+        // 添加上传文件配置
+        function addUpload() {
+            if (!configData.uploads) {
+                configData.uploads = [];
+            }
+            
+            const newIndex = configData.uploads.length;
+            configData.uploads.push({
+                source_path: "",
+                server_path: ""
+            });
+            
+            loadSection('uploads');
+            updatePreview();
+            updateCounters();
+            showNotification('上传文件配置已添加', 'success');
+        }
+
+        // 更新上传文件字段
+        function updateUploadField(index, field, value) {
+            if (!configData.uploads) {
+                configData.uploads = [];
+            }
+            configData.uploads[index][field] = value;
+            updatePreview();
+        }
+
+        // 移除上传文件
+        function removeUpload(index) {
+            if (configData.uploads && configData.uploads[index]) {
+                if (confirm('确定要删除这个上传文件配置吗？')) {
+                    configData.uploads.splice(index, 1);
+                    loadSection('uploads');
+                    updatePreview();
+                    updateCounters();
+                    showNotification('上传文件配置已删除', 'success');
+                }
+            }
+        }
+
+        // 上移上传文件
+        function moveUploadUp(index) {
+            if (configData.uploads && index > 0) {
+                const temp = configData.uploads[index];
+                configData.uploads[index] = configData.uploads[index - 1];
+                configData.uploads[index - 1] = temp;
+                loadSection('uploads');
+                updatePreview();
+            }
+        }
+
+        // 下移上传文件
+        function moveUploadDown(index) {
+            if (configData.uploads && index < configData.uploads.length - 1) {
+                const temp = configData.uploads[index];
+                configData.uploads[index] = configData.uploads[index + 1];
+                configData.uploads[index + 1] = temp;
+                loadSection('uploads');
+                updatePreview();
+            }
+        }
+
+        // 生成多选下拉框的HTML
+        function generateMultiselect(selectedInputs, index) {
+            const inputOptions = configData.inputs.map(input => ({
+                label: input.label,
+                value: input.field_name
+            }));
+            
+            const selectedValues = selectedInputs || [];
+            
+            return `
+                <div class="multiselect-container" id="multiselect-container-${index}">
+                    <div class="multiselect-input" onclick="toggleMultiselectDropdown(${index})">
+                        ${selectedValues.length > 0 ? 
+                            selectedValues.map(value => {
+                                const input = configData.inputs.find(i => i.field_name === value);
+                                const label = input ? input.label : value;
+                                return `
+                                    <div class="multiselect-tag">
+                                        ${escapeHtml(label)}
+                                        <span class="multiselect-tag-remove" onclick="removeMultiselectOption(${index}, '${escapeHtml(value)}', event)">×</span>
+                                    </div>
+                                `;
+                            }).join('') : 
+                            '<div class="multiselect-placeholder">选择必需输入参数...</div>'
+                        }
+                    </div>
+                    <div class="multiselect-dropdown" id="multiselect-dropdown-${index}">
+                        ${inputOptions.map(option => `
+                            <div class="multiselect-option ${selectedValues.includes(option.value) ? 'selected' : ''}" 
+                                 onclick="toggleMultiselectOption(${index}, '${escapeHtml(option.value)}', '${escapeHtml(option.label)}')">
+                                <input type="checkbox" ${selectedValues.includes(option.value) ? 'checked' : ''} 
+                                       onclick="event.stopPropagation(); toggleMultiselectOption(${index}, '${escapeHtml(option.value)}', '${escapeHtml(option.label)}')">
+                                ${escapeHtml(option.label)} (${escapeHtml(option.value)})
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 初始化代码编辑器
+        function initCodeEditor(textareaId, index, type) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) return;
+            
+            const editor = CodeMirror.fromTextArea(textarea, {
+                mode: "shell",
+                theme: "monokai",
+                lineNumbers: true,
+                lineWrapping: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                extraKeys: {
+                    "Ctrl-Space": "autocomplete",
+                    "Ctrl-/": "toggleComment"
+                },
+                indentUnit: 4,
+                tabSize: 4,
+                indentWithTabs: false
+            });
+            
+            editor.setSize("100%", "200px");
+            
+            codeEditors[`${type}-${index}`] = editor;
+            
+            editor.on('change', function(cm) {
+                const commands = cm.getValue().split('\n').filter(cmd => cmd.trim() !== '');
+                if (type === 'install') {
+                    configData.installs[index].commands = commands;
+                } else if (type === 'batch') {
+                    configData.batch[index].commands = commands;
+                }
+                updatePreview();
+            });
+        }
+
+        // 初始化多选下拉框
+        function initMultiselect(index) {
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById(`multiselect-dropdown-${index}`);
+                const container = document.getElementById(`multiselect-container-${index}`);
+                
+                if (dropdown && container && !container.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // 切换多选下拉框显示
+        function toggleMultiselectDropdown(index) {
+            const dropdown = document.getElementById(`multiselect-dropdown-${index}`);
+            dropdown.classList.toggle('show');
+            
+            document.querySelectorAll('.multiselect-dropdown').forEach((dd, i) => {
+                if (i !== index && dd.classList.contains('show')) {
+                    dd.classList.remove('show');
+                }
+            });
+        }
+
+        // 切换多选选项
+        function toggleMultiselectOption(index, value, label) {
+            const batchItem = configData.batch[index];
+            const requiredInputs = batchItem.required_inputs || [];
+            
+            if (requiredInputs.includes(value)) {
+                batchItem.required_inputs = requiredInputs.filter(v => v !== value);
+            } else {
+                if (!batchItem.required_inputs) {
+                    batchItem.required_inputs = [];
+                }
+                batchItem.required_inputs.push(value);
+            }
+            
+            updateMultiselectDisplay(index);
+            updatePreview();
+        }
+
+        // 移除多选标签
+        function removeMultiselectOption(index, value, event) {
+            event.stopPropagation();
+            
+            const batchItem = configData.batch[index];
+            if (batchItem.required_inputs) {
+                batchItem.required_inputs = batchItem.required_inputs.filter(v => v !== value);
+            }
+            
+            updateMultiselectDisplay(index);
+            updatePreview();
+        }
+
+        // 更新多选下拉框显示
+        function updateMultiselectDisplay(index) {
+            const batchItem = configData.batch[index];
+            const selectedValues = batchItem.required_inputs || [];
+            const container = document.getElementById(`multiselect-container-${index}`);
+            
+            if (!container) return;
+            
+            const inputElement = container.querySelector('.multiselect-input');
+            const dropdown = container.querySelector('.multiselect-dropdown');
+            
+            inputElement.innerHTML = selectedValues.length > 0 ? 
+                selectedValues.map(value => {
+                    const input = configData.inputs.find(i => i.field_name === value);
+                    const label = input ? input.label : value;
+                    return `
+                        <div class="multiselect-tag">
+                            ${escapeHtml(label)}
+                            <span class="multiselect-tag-remove" onclick="removeMultiselectOption(${index}, '${escapeHtml(value)}', event)">×</span>
+                        </div>
+                    `;
+                }).join('') : 
+                '<div class="multiselect-placeholder">选择必需输入参数...</div>';
+            
+            dropdown.querySelectorAll('.multiselect-option').forEach(option => {
+                const onclickAttr = option.getAttribute('onclick');
+                if (onclickAttr) {
+                    const match = onclickAttr.match(/toggleMultiselectOption\([^,]+,\s*'([^']+)'/);
+                    if (match) {
+                        const value = match[1];
+                        if (selectedValues.includes(value)) {
+                            option.classList.add('selected');
+                            const input = option.querySelector('input');
+                            if (input) input.checked = true;
+                        } else {
+                            option.classList.remove('selected');
+                            const input = option.querySelector('input');
+                            if (input) input.checked = false;
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新计数器
+        function updateCounters() {
+            document.getElementById('inputsCount').textContent = configData.inputs.length;
+            document.getElementById('variablesCount').textContent = Object.keys(configData.variables).length;
+            document.getElementById('installsCount').textContent = configData.installs.length;
+            document.getElementById('batchCount').textContent = configData.batch.length;
+            document.getElementById('uploadsCount').textContent = configData.uploads ? configData.uploads.length : 0;
+        }
+
+        // 更新配置值
+        function updateConfigValue(key, value) {
+            configData[key] = value;
+            updatePreview();
+        }
+
+        // 更新输入参数字段
+        function updateInputField(index, field, value) {
+            configData.inputs[index][field] = value;
+            
+            const item = document.getElementById(`input-${index}`);
+            if (item && field === 'label') {
+                const title = item.querySelector('.list-item-title');
+                if (title) {
+                    title.textContent = value || '未命名参数';
+                }
+            }
+            
+            updatePreview();
+            updateCounters();
+        }
+
+        // 添加输入参数 - 修复：确保文件类型参数创建时有file_extensions数组
+        function addInput() {
+            const newIndex = configData.inputs.length;
+            configData.inputs.push({
+                label: "新参数",
+                field_name: "new_param_" + Date.now(),
+                type: "text",
+                default_value: "",
+                editable: true,
+                required: false,
+                options: [],
+                file_extensions: [] // 为所有类型添加file_extensions，避免切换类型时出现问题
+            });
+            
+            lastAddedItemIndex = newIndex;
+            lastAddedItemType = 'input';
+            
+            loadSection('inputs');
+            updatePreview();
+            updateCounters();
+            showNotification('输入参数已添加', 'success');
+            
+            setTimeout(() => {
+                scrollToNewItem();
+            }, 300);
+        }
+
+        // 删除输入参数
+        function removeInput(index) {
+            if (confirm('确定要删除这个输入参数吗？')) {
+                configData.inputs.splice(index, 1);
+                loadSection('inputs');
+                updatePreview();
+                updateCounters();
+                showNotification('输入参数已删除', 'success');
+            }
+        }
+
+        // 上移输入参数
+        function moveInputUp(index) {
+            if (index > 0) {
+                const temp = configData.inputs[index];
+                configData.inputs[index] = configData.inputs[index - 1];
+                configData.inputs[index - 1] = temp;
+                loadSection('inputs');
+                updatePreview();
+            }
+        }
+
+        // 下移输入参数
+        function moveInputDown(index) {
+            if (index < configData.inputs.length - 1) {
+                const temp = configData.inputs[index];
+                configData.inputs[index] = configData.inputs[index + 1];
+                configData.inputs[index + 1] = temp;
+                loadSection('inputs');
+                updatePreview();
+            }
+        }
+
+        // 更新环境变量键名
+        function updateVariableKey(oldIndex, newKey) {
+            const keys = Object.keys(configData.variables);
+            const oldKey = keys[oldIndex];
+            const value = configData.variables[oldKey];
+            
+            delete configData.variables[oldKey];
+            configData.variables[newKey] = value;
+            
+            updatePreview();
+            updateCounters();
+        }
+
+        // 更新环境变量值
+        function updateVariableValue(key, value) {
+            configData.variables[key] = value;
+            updatePreview();
+        }
+
+        // 添加环境变量
+        function addVariable() {
+            const newKey = `NEW_VAR_${Object.keys(configData.variables).length + 1}`;
+            configData.variables[newKey] = "";
+            
+            loadSection('variables');
+            updatePreview();
+            updateCounters();
+            showNotification('环境变量已添加', 'success');
+            
+            setTimeout(() => {
+                scrollToBottom();
+            }, 300);
+        }
+
+        // 删除环境变量
+        function removeVariable(key) {
+            if (confirm(`确定要删除环境变量 "${key}" 吗？`)) {
+                delete configData.variables[key];
+                loadSection('variables');
+                updatePreview();
+                updateCounters();
+                showNotification('环境变量已删除', 'success');
+            }
+        }
+
+        // 更新环境安装字段
+        function updateInstallField(index, field, value) {
+            const oldEnvName = configData.installs[index].env_name;
+            configData.installs[index][field] = value;
+            
+            if (field === 'env_name' && oldEnvName !== value) {
+                configData.batch.forEach(batch => {
+                    if (batch.env_name === oldEnvName) {
+                        batch.env_name = value;
+                    }
+                });
+                
+                if (activeSection === 'batch') {
+                    loadSection('batch');
+                }
+            }
+            
+            const item = document.getElementById(`install-${index}`);
+            if (item && field === 'env_name') {
+                const title = item.querySelector('.list-item-title');
+                if (title) {
+                    title.textContent = `环境: ${value}`;
+                }
+            }
+            
+            updatePreview();
+            updateCounters();
+        }
+
+        // 添加环境安装
+        function addInstall() {
+            const newIndex = configData.installs.length;
+            configData.installs.push({
+                env_name: "new_env_" + Date.now(),
+                python_version: "3.8",
+                cuda_version: "12.8", // 默认值
+                commands: ["# 添加安装命令", "echo '新环境安装'"]
+            });
+            
+            lastAddedItemIndex = newIndex;
+            lastAddedItemType = 'install';
+            
+            loadSection('installs');
+            updatePreview();
+            updateCounters();
+            showNotification('环境安装配置已添加', 'success');
+            
+            setTimeout(() => {
+                scrollToNewItem();
+            }, 300);
+        }
+
+        // 删除环境安装
+        function removeInstall(index) {
+            const envName = configData.installs[index].env_name;
+            const usedInBatch = configData.batch.filter(batch => batch.env_name === envName).length;
+            
+            if (usedInBatch > 0) {
+                if (!confirm(`环境"${envName}"正在被 ${usedInBatch} 个推理设置步骤使用。删除此环境将使这些步骤无法正常工作。确定要删除吗？`)) {
+                    return;
+                }
+            } else {
+                if (!confirm('确定要删除这个环境安装配置吗？')) {
+                    return;
+                }
+            }
+            
+            configData.installs.splice(index, 1);
+            loadSection('installs');
+            updatePreview();
+            updateCounters();
+            showNotification('环境安装配置已删除', 'success');
+        }
+
+        // 上移环境安装
+        function moveInstallUp(index) {
+            if (index > 0) {
+                const temp = configData.installs[index];
+                configData.installs[index] = configData.installs[index - 1];
+                configData.installs[index - 1] = temp;
+                loadSection('installs');
+                updatePreview();
+            }
+        }
+
+        // 下移环境安装
+        function moveInstallDown(index) {
+            if (index < configData.installs.length - 1) {
+                const temp = configData.installs[index];
+                configData.installs[index] = configData.installs[index + 1];
+                configData.installs[index + 1] = temp;
+                loadSection('installs');
+                updatePreview();
+            }
+        }
+
+        // 更新推理设置字段
+        function updateBatchField(index, field, value) {
+            configData.batch[index][field] = value;
+            
+            const item = document.getElementById(`batch-${index}`);
+            if (item && field === 'name') {
+                const title = item.querySelector('.list-item-title');
+                if (title) {
+                    title.textContent = value;
+                }
+            }
+            
+            updatePreview();
+        }
+
+        // 更新推理设置环境名称
+        function updateBatchEnvName(batchIndex, newEnvName) {
+            configData.batch[batchIndex].env_name = newEnvName;
+            updatePreview();
+        }
+
+        // 添加推理设置
+        function addBatch() {
+            const newIndex = configData.batch.length;
+            const defaultEnv = configData.installs.length > 0 ? configData.installs[0].env_name : "";
+            
+            configData.batch.push({
+                name: "新步骤",
+                env_name: defaultEnv,
+                commands: ["# 添加执行命令", "echo '执行步骤'"]
+            });
+            
+            lastAddedItemIndex = newIndex;
+            lastAddedItemType = 'batch';
+            
+            loadSection('batch');
+            updatePreview();
+            updateCounters();
+            showNotification('推理设置步骤已添加', 'success');
+            
+            setTimeout(() => {
+                scrollToNewItem();
+            }, 300);
+        }
+
+        // 删除推理设置
+        function removeBatch(index) {
+            if (confirm('确定要删除这个推理设置步骤吗？')) {
+                configData.batch.splice(index, 1);
+                loadSection('batch');
+                updatePreview();
+                updateCounters();
+                showNotification('推理设置步骤已删除', 'success');
+            }
+        }
+
+        // 上移推理设置
+        function moveBatchUp(index) {
+            if (index > 0) {
+                const temp = configData.batch[index];
+                configData.batch[index] = configData.batch[index - 1];
+                configData.batch[index - 1] = temp;
+                loadSection('batch');
+                updatePreview();
+            }
+        }
+
+        // 下移推理设置
+        function moveBatchDown(index) {
+            if (index < configData.batch.length - 1) {
+                const temp = configData.batch[index];
+                configData.batch[index] = configData.batch[index + 1];
+                configData.batch[index + 1] = temp;
+                loadSection('batch');
+                updatePreview();
+            }
+        }
+
+        // 更新预览
+        function updatePreview() {
+            const formattedJson = JSON.stringify(configData, null, 2);
+            document.getElementById('jsonPreview').textContent = formattedJson;
+            syntaxHighlight(document.getElementById('jsonPreview'));
+        }
+
+        // 语法高亮
+        function syntaxHighlight(element) {
+            const json = element.textContent;
+            if (!json) return;
+            
+            let highlighted = json
+                .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, 
+                function(match) {
+                    let cls = 'number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'key';
+                        } else {
+                            cls = 'string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'null';
+                    }
+                    return '<span>' + match + '</span>';
+                });
+            
+            element.innerHTML = highlighted;
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notificationText = document.getElementById('notificationText');
+            const icon = notification.querySelector('i');
+            
+            notificationText.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            if (type === 'success') {
+                icon.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                icon.className = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                icon.className = 'fas fa-exclamation-triangle';
+            } else {
+                icon.className = 'fas fa-info-circle';
+            }
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 验证配置
+        function validateConfig() {
+            const errors = [];
+            const warnings = [];
+            
+            if (!configData.app_id) errors.push('应用ID不能为空');
+            if (!configData.name) errors.push('应用名称不能为空');
+            
+            configData.inputs.forEach((input, index) => {
+                if (!input.label) errors.push(`输入参数 ${index + 1}: 显示标签不能为空`);
+                if (!input.field_name) errors.push(`输入参数 ${index + 1}: 字段名不能为空`);
+                
+                if (input.type === 'select' && input.options) {
+                    input.options.forEach((option, optionIndex) => {
+                        if (!option.label || !option.value) {
+                            errors.push(`输入参数 ${index + 1} 的选项 ${optionIndex + 1}: label和value都不能为空`);
+                        }
+                    });
+                }
+            });
+            
+            configData.installs.forEach((install, index) => {
+                if (!install.env_name) errors.push(`环境安装 ${index + 1}: 环境名称不能为空`);
+                if (!install.python_version) errors.push(`环境安装 ${index + 1}: Python版本不能为空`);
+                if (install.commands.length === 0) warnings.push(`环境安装 ${index + 1}: 建议至少添加一个安装命令`);
+            });
+            
+            configData.batch.forEach((batch, index) => {
+                if (!batch.name) errors.push(`推理设置步骤 ${index + 1}: 步骤名称不能为空`);
+                if (!batch.env_name) errors.push(`推理设置步骤 ${index + 1}: 必须选择一个环境`);
+                if (batch.env_name && !isEnvDefined(batch.env_name)) {
+                    errors.push(`推理设置步骤 ${index + 1}: 环境"${batch.env_name}"未在"环境安装"中定义`);
+                }
+                
+                if (batch.commands && batch.commands.length === 0) {
+                    warnings.push(`推理设置步骤 ${index + 1}: 建议至少添加一个执行命令`);
+                }
+                
+                if (batch.cooperation) {
+                    if (!batch.cooperation.app_id) {
+                        errors.push(`推理设置步骤 ${index + 1}: 协作应用ID不能为空`);
+                    }
+                } else if (!batch.commands) {
+                    errors.push(`推理设置步骤 ${index + 1}: 必须选择本地命令或应用协作`);
+                }
+            });
+            
+            if (configData.uploads) {
+                configData.uploads.forEach((upload, index) => {
+                    if (!upload.source_path) warnings.push(`上传文件 ${index + 1}: 本地源路径未设置`);
+                    if (!upload.server_path) warnings.push(`上传文件 ${index + 1}: 服务器路径未设置`);
+                });
+            }
+            
+            if (errors.length === 0) {
+                let message = '配置验证通过';
+                if (warnings.length > 0) {
+                    message += ` (有 ${warnings.length} 个警告: ${warnings.join('; ')})`;
+                    showNotification(message, 'warning');
+                } else {
+                    showNotification(message, 'success');
+                }
+            } else {
+                showNotification(`配置验证失败: ${errors.join('; ')}`, 'error');
+            }
+        }
+
+        // 导出配置
+        function exportConfig() {
+            const dataStr = JSON.stringify(configData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = configData.app_id ? `${configData.app_id}_config.json` : 'ai_workflow_config.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification('配置已导出为JSON文件', 'success');
+        }
+
+        // 导入配置
+        function importConfig() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(event) {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const importedConfig = JSON.parse(e.target.result);
+                        
+                        const requiredFields = ['app_id', 'name', 'inputs', 'variables', 'installs', 'batch'];
+                        const missingFields = requiredFields.filter(field => !importedConfig.hasOwnProperty(field));
+                        
+                        if (missingFields.length > 0) {
+                            showNotification(`导入失败：缺少必要字段: ${missingFields.join(', ')}`, 'error');
+                            return;
+                        }
+                        
+                        importedConfig.inputs.forEach(input => {
+                            if (input.type === 'select' && input.options && Array.isArray(input.options)) {
+                                if (input.options.length > 0 && typeof input.options[0] === 'string') {
+                                    input.options = input.options.map(option => ({
+                                        label: option,
+                                        value: option
+                                    }));
+                                }
+                            }
+                            // 确保所有输入参数都有file_extensions数组
+                            if (input.type === 'file' && !input.file_extensions) {
+                                input.file_extensions = [];
+                            }
+                        });
+                        
+                        // 确保所有环境安装有CUDA版本
+                        importedConfig.installs.forEach(install => {
+                            if (!install.cuda_version) {
+                                install.cuda_version = '12.8';
+                            }
+                        });
+                        
+                        configData = importedConfig;
+                        
+                        if (!configData.uploads) {
+                            configData.uploads = [];
+                        }
+                        
+                        updateCounters();
+                        loadSection(activeSection);
+                        updatePreview();
+                        
+                        showNotification('配置已成功导入', 'success');
+                    } catch (error) {
+                        showNotification('导入失败：文件格式错误或解析失败', 'error');
+                        console.error('导入错误:', error);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            console.log('绑定事件');
+            
+            document.querySelectorAll('.config-nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    loadSection(section);
+                });
+            });
+            
+            document.getElementById('btnNew').addEventListener('click', startWizard);
+            // 移除保存按钮事件绑定
+            document.getElementById('btnExport').addEventListener('click', exportConfig);
+            document.getElementById('btnImport').addEventListener('click', importConfig);
+            document.getElementById('btnValidate').addEventListener('click', validateConfig);
+            document.getElementById('btnRefreshPreview').addEventListener('click', updatePreview);
+            
+            // 向导事件
+            document.getElementById('btnCloseWizard').addEventListener('click', function() {
+                document.getElementById('wizardOverlay').classList.remove('active');
+            });
+            
+            document.getElementById('btnWizardPrev').addEventListener('click', function() {
+                if (wizardCurrentStep > 1) {
+                    wizardCurrentStep--;
+                    updateWizardStep();
+                    updateWizardSummary();
+                }
+            });
+            
+            document.getElementById('btnWizardNext').addEventListener('click', function() {
+                if (wizardCurrentStep < wizardTotalSteps) {
+                    // 验证当前步骤
+                    if (!validateWizardStep()) {
+                        return;
+                    }
+                    
+                    wizardCurrentStep++;
+                    updateWizardStep();
+                    updateWizardSummary();
+                    
+                    // 如果是最后一步，更新摘要
+                    if (wizardCurrentStep === wizardTotalSteps) {
+                        updateWizardSummary();
+                    }
+                } else {
+                    // 完成向导
+                    completeWizard();
+                }
+            });
+            
+            document.getElementById('btnAddWizardInput').addEventListener('click', addWizardInput);
+            document.getElementById('btnAddWizardBatch').addEventListener('click', addWizardBatch);
+            document.getElementById('btnAddWizardUpload').addEventListener('click', addWizardUpload);
+            
+            if (window.location.search.includes('content=')) {
+                loadConfigFromBase64UrlParam();
+            }
+        }
+
+        // 验证向导步骤
+        function validateWizardStep() {
+            switch(wizardCurrentStep) {
+                case 1:
+                    const appId = document.getElementById('wizard_app_id').value;
+                    const appName = document.getElementById('wizard_name').value;
+                    
+                    if (!appId || !appId.trim()) {
+                        showNotification('应用ID不能为空', 'error');
+                        return false;
+                    }
+                    
+                    if (!appName || !appName.trim()) {
+                        showNotification('应用名称不能为空', 'error');
+                        return false;
+                    }
+                    
+                    if (!/^[a-z0-9_]+$/.test(appId)) {
+                        showNotification('应用ID只能包含小写字母、数字和下划线', 'error');
+                        return false;
+                    }
+                    break;
+                    
+                case 3:
+                    const envName = document.getElementById('wizard_env_name').value;
+                    const pythonVersion = document.getElementById('wizard_python_version').value;
+                    
+                    if (!envName || !envName.trim()) {
+                        showNotification('环境名称不能为空', 'error');
+                        return false;
+                    }
+                    
+                    if (!pythonVersion || !pythonVersion.trim()) {
+                        showNotification('Python版本不能为空', 'error');
+                        return false;
+                    }
+                    break;
+            }
+            
+            return true;
+        }
+
+        // 设置自动保存
+        function setupAutoSave() {
+            let saveTimeout;
+            
+            function debouncedSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(function() {
+                    try {
+                        localStorage.setItem('ai_workflow_config', JSON.stringify(configData));
+                        // 静默保存，不显示通知
+                    } catch (error) {
+                        console.error('自动保存失败:', error);
+                    }
+                }, 2000);
+            }
+            
+            document.addEventListener('input', debouncedSave);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

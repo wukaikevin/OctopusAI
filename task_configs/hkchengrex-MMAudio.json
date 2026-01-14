@@ -1,0 +1,65 @@
+{
+  "variables": {"work_dir": "$HOME/MMAudio"},
+  "author": "hkchengrex",
+  "inputs": [
+    {
+      "editable": true,
+      "default_value": "",
+      "label": "视频文件",
+      "type": "file",
+      "required": false,
+      "field_name": "video_path"
+    },
+    {
+      "editable": true,
+      "default_value": "background music",
+      "label": "提示词",
+      "type": "text",
+      "required": true,
+      "field_name": "prompt"
+    },
+    {
+      "editable": true,
+      "default_value": 8,
+      "label": "生成时长（秒）",
+      "type": "number",
+      "required": false,
+      "field_name": "duration"
+    }
+  ],
+  "batch": [{
+    "env_name": "mmaudio",
+    "name": "生成音效",
+    "commands": [
+      "mkdir -p $(dirname {server_output})",
+      "cd {work_dir}",
+      "rm -rf {server_output}/*",
+      "#python -c \"import sys; sys.path.insert(0, '.'); import os; video_path = '{video_path}'; prompt = '{prompt}'; duration = {duration}; output = '{server_output}'; args = type('Args', (), {'video': video_path if video_path else None, 'prompt': prompt, 'duration': duration,'output':'{server_output}'})(); exec(open('demo.py').read())\"",
+      "python demo.py --duration={duration} --video={video_path} --prompt \"{prompt}\" --output {server_output}"
+    ]
+  }],
+  "description": "MMAudio是一个高保真的视频到音频生成模型，支持视频生成音频和文本生成音频。它通过多模态联合训练实现了高质量的音频合成，并包含同步模块以确保生成的音频与视频帧完美对齐。",
+  "model_path": "/MMAudio/models",
+  "installs": [{
+    "env_name": "mmaudio",
+    "cuda_version": "12.1",
+    "python_version": "3.10",
+    "commands": [
+      "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
+      "pip install transformers accelerate opencv-python pillow imageio-ffmpeg soundfile",
+      "mkdir -p {model_path}",
+      "rm -rf {work_dir}",
+      "mkdir -p {work_dir}",
+      "git clone https://github.com/hkchengrex/MMAudio.git {work_dir}",
+      "cd {work_dir}",
+      "pip install -e ."
+    ]
+  }],
+  "uploads": [],
+  "endpoint": "echo \"{server_output}\"",
+  "server_output": "/tmp/MMAudio/output",
+  "name": "视频添加音效-MMAudio",
+  "app_id": "hkchengrex-MMAudio",
+  "email": "",
+  "homepage": "https://github.com/hkchengrex/MMAudio"
+}

@@ -1,0 +1,123 @@
+{
+  "app_id": "Wan2.2-S2V-14B",
+  "name": "音频生成视频-Wan2.2-S2V-14B",
+  "description": "基于Wan2.2-S2V-A14B模型的音频生成视频工具，支持根据用户输入的提示词、图像和音频生成高质量的视频内容。用户可以自定义视频分辨率，以满足不同的创作需求。算力要求：H100-80G或等效算力以上，支持多卡加速计算。",
+  "author": "Kevin Wu",
+  "homepage": "https://github.com/wukaikevin",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "提示词",
+      "field_name": "prompt",
+      "type": "textarea",
+      "default_value": "一位女生在声情并茂地唱歌",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "人物照片(作为生成视频的人物形象）",
+      "field_name": "image",
+      "type": "file",
+      "file_extensions": [
+        "png",
+        "jpg",
+        "jpeg"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    
+    {
+      "label": "视频尺寸",
+      "field_name": "resolution",
+      "type": "select",
+      "default_value": "480*832",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "竖板-480P (480*832)", "value": "480*832" },
+        { "label": "竖板-720P (720*1280)", "value": "720*1280" },
+        { "label": "横板-480P (832*480)", "value": "832*480" },
+        { "label": "横板-720P (1280*720)", "value": "1280*720" }
+      ]
+    },
+    {
+      "label": "人声音乐",
+      "field_name": "audio",
+      "type": "file",
+      "file_extensions": [
+        "mp4",
+        "mp3",
+        "wav"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "动作参考视频（可选，用于指导生成视频中的人物动作）",
+      "field_name": "pose_video",
+      "type": "file",
+      "file_extensions": [
+        "mp4"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": false
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/Wan2.2-S2V-14B"
+  },
+  "server_output_file": "",
+  "server_output_dir": "/tmp/Wan2.2-S2V-14B_results",
+  "model_path": "$HOME/.cache/Wan2.2-S2V-14B",
+  "installs": [
+    {
+      "env_name": "Wan2.2-S2V-14B",
+      "python_version": "3.12",
+      "cuda_version": "12.9",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "mkdir -p {model_path}",
+        "export TORCH_CUDA_ARCH_LIST=\"6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0\" && export FORCE_CUDA=1 && export MAX_JOBS=4",
+        "apt-get install sox libsox-dev libgl1 unzip ffmpeg libx264-dev -y",
+        "conda install pytorch=2.9.* torchvision ffmpeg=7.1.1 -c conda-forge -c pytorch -y",
+        "pip install torchaudio",
+        "pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.1/flash_attn-2.8.1+cu12torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+        "git clone https://github.com/Wan-Video/Wan2.2.git {work_dir}",
+        "cd {work_dir}",
+        "grep -v \"flash_attn\" requirements.txt > requirements_base.txt",
+        "pip install -r requirements_base.txt",
+        "pip install -r requirements_s2v.txt",
+        "pip install onnxruntime-gpu",
+        "pip install opencv-python moviepy imageio[ffmpeg] imageio-ffmpeg numpy pillow",
+        "pip install --upgrade transformers peft diffusers",
+        "pip install huggingface_hub[cli]"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "Wan2.2-S2V-14B",
+      "commands":[
+        "hf download Wan-AI/Wan2.2-S2V-14B --local-dir {model_path}"
+      ]
+    },
+    {
+      "name": "视频生成",
+      "env_name": "Wan2.2-S2V-14B",
+      "commands": [
+        "rm -rf {server_output_dir}/* && mkdir -p {server_output_dir}",
+        "cd {work_dir}",
+        "python -c \"import torch; print(f'PyTorch版本: {torch.__version__}'); print(f'CUDA是否可用: {torch.cuda.is_available()}'); (print(f'CUDA版本: {torch.version.cuda}'), print(f'cuDNN版本: {torch.backends.cudnn.version()}'), print(f'GPU数量: {torch.cuda.device_count()}'), [print(f'GPU {i}: {torch.cuda.get_device_name(i)}') for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else None\"",
+        "export gpu_num=$(python -c \"import torch; print(torch.cuda.device_count())\")",
+        "torchrun --nproc_per_node=$gpu_num generate.py --task s2v-14B --size {resolution} --ckpt_dir {model_path} $([ \"$gpu_num\" -gt 1 ] && echo \"--dit_fsdp --t5_fsdp\") --ulysses_size $gpu_num --image {image} --audio {audio} --prompt \"{prompt}\" $([ -n \"{pose_video}\" ] && echo \"--pose_video {pose_video}\") --save_file {server_output_dir}/video_complate.mp4"
+      ]
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}/video_complate.mp4\""
+}

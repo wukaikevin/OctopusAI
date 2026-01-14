@@ -1,0 +1,121 @@
+# 不同GPU类型的优化配置
+gpu_configs:
+  h20:
+    batch_size: 32
+    seq_chunk: 16
+    precision: bf16
+    num_workers: 8
+    max_resolution: [3840, 2160]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 3
+    
+  h100:
+    batch_size: 24
+    seq_chunk: 16
+    precision: bf16
+    num_workers: 6
+    max_resolution: [3840, 2160]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 3
+    
+  a100:
+    batch_size: 16
+    seq_chunk: 16
+    precision: tf32
+    num_workers: 4
+    max_resolution: [3840, 2160]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 2
+    
+  rtx4090:
+    batch_size: 12
+    seq_chunk: 12
+    precision: fp16
+    num_workers: 4
+    max_resolution: [3840, 2160]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 2
+    
+  rtx3090:
+    batch_size: 8
+    seq_chunk: 12
+    precision: fp16
+    num_workers: 4
+    max_resolution: [2560, 1440]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 2
+    
+  rtx2080:
+    batch_size: 4
+    seq_chunk: 8
+    precision: fp16
+    num_workers: 2
+    max_resolution: [1920, 1080]
+    use_jit: false
+    use_memory_efficient_attention: false
+    pipeline_stages: 1
+    
+  other_high_end:
+    batch_size: 8
+    seq_chunk: 12
+    precision: fp16
+    num_workers: 4
+    max_resolution: [2560, 1440]
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 2
+    
+  other_mid_range:
+    batch_size: 4
+    seq_chunk: 8
+    precision: fp16
+    num_workers: 2
+    max_resolution: [1920, 1080]
+    use_jit: false
+    use_memory_efficient_attention: false
+    pipeline_stages: 1
+    
+  cpu:
+    batch_size: 1
+    seq_chunk: 1
+    precision: fp32
+    num_workers: 8
+    max_resolution: [1280, 720]
+    use_jit: false
+    use_memory_efficient_attention: false
+    pipeline_stages: 1
+
+# 优化模式
+optimization_modes:
+  max_performance:
+    description: "最大性能模式"
+    batch_size_multiplier: 2.0
+    seq_chunk_multiplier: 2.0
+    num_workers_multiplier: 2.0
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 3
+    
+  balanced:
+    description: "平衡模式"
+    batch_size_multiplier: 1.0
+    seq_chunk_multiplier: 1.0
+    num_workers_multiplier: 1.0
+    use_jit: true
+    use_memory_efficient_attention: true
+    pipeline_stages: 2
+    
+  quality_first:
+    description: "质量优先模式"
+    batch_size_multiplier: 0.5
+    seq_chunk_multiplier: 0.8
+    num_workers_multiplier: 1.0
+    use_jit: false
+    use_memory_efficient_attention: false
+    pipeline_stages: 1
+    max_resolution: [3840, 2160]

@@ -1,0 +1,176 @@
+{
+  "app_id": "cosyvoice-tts-app",
+  "name": "语音生成-CosyVoice",
+  "description": "基于CosyVoice 3.0的语音合成应用，支持零样本语音克隆和指令控制语音合成。",
+  "author": "FunAudioLLM",
+  "homepage": "https://github.com/FunAudioLLM/CosyVoice",
+  "email": "",
+  "inputs": [
+    {
+      "label": "要合成语音的文本",
+      "field_name": "input_text",
+      "type": "textarea",
+      "default_value": "基于CosyVoice 3.0的语音合成应用，支持零样本语音克隆和指令控制语音合成。",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "音色参考文件（10秒以内，用于提取音色）",
+      "field_name": "sample_audio",
+      "type": "file",
+      "file_extensions": [
+        "mp3",
+        "wav",
+        "mp4",
+        "ogg",
+        "m4a"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "生成模式",
+      "field_name": "mode",
+      "type": "select",
+      "default_value": "zero_shot",
+      "editable": true,
+      "required": true,
+      "options": [
+        {
+          "label": "语音克隆 - 使用参考音频克隆音色并合成语音",
+          "value": "zero_shot"
+        },
+        {
+          "label": "指令控制 - 用自然语言指令控制语音特征（如方言、风格）",
+          "value": "instruct"
+        }
+      ]
+    },
+    {
+      "label": "语音控制指令（如：用四川话说、用欢快的语气、语速快一点），仅在生成模式为[指令控制]时生效",
+      "field_name": "instruction",
+      "type": "text",
+      "default_value": "用四川话说这句话",
+      "editable": true,
+      "required": false
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/CosyVoice",
+    "model_path": "$HOME/.cache/cosyvoice2"
+  },
+  "model_path": "$HOME/.cache/cosyvoice2",
+  "server_output_file": "",
+  "server_output_dir": "/tmp/cosyvoice_results",
+  "installs": [
+    {
+      "env_name": "cosyvoice-env",
+      "python_version": "3.10",
+      "cuda_version": "12.8",
+      "commands": [
+        "rm -rf {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "apt-get update && apt-get install -y unzip ffmpeg libsndfile1 sox libsox-dev",
+        "git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git {work_dir}",
+        "cd {work_dir}",
+        "git submodule update --init --recursive",
+        "pip install -r requirements.txt",
+        "python -c \"from modelscope import snapshot_download;snapshot_download('iic/CosyVoice-ttsfrd', local_dir='{model_path}/CosyVoice-ttsfrd')\"",
+        "cd {model_path}/CosyVoice-ttsfrd/",
+        "unzip -o resource.zip -d .",
+        "pip install ttsfrd_dependency-0.1-py3-none-any.whl",
+        "pip install ttsfrd-0.4.2-cp310-cp310-linux_x86_64.whl",
+        "cd {work_dir}",
+        "git clone https://github.com/alibaba/FunASR.git && cd FunASR && pip install -e ./",
+        "ln -s \"{model_path}\" \"{work_dir}/pretrained_models\"",
+        "pip install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128",
+        "pip uninstall ruamel.yaml ruamel.yaml.clib PyYAML -y",
+        "conda install -c conda-forge ruamel.yaml=0.17.* pyyaml=5.* -y"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "cosyvoice-env",
+      "commands": [
+        "mkdir -p {server_output_dir}",
+        "rm -rf {server_output_dir}/*",
+        "export OMP_NUM_THREADS=1",
+        "cd {work_dir}",
+        "python -c \"from modelscope import snapshot_download;snapshot_download('FunAudioLLM/Fun-CosyVoice3-0.5B-2512', local_dir='{model_path}/Fun-CosyVoice3-0.5B');snapshot_download('iic/CosyVoice-ttsfrd', local_dir='{model_path}/CosyVoice-ttsfrd')\""
+      ]
+    },
+    {
+      "name": "音频预处理",
+      "env_name": "cosyvoice-env",
+      "required_inputs": [
+        "sample_audio"
+      ],
+      "commands": [
+        "ffmpeg -hide_banner -loglevel error -i '{sample_audio}' -ar 16000 -ac 1 -c:a pcm_s16le -t 10 -y '{server_output_dir}/sample_audio.wav'",
+        "echo '音频预处理完成，已转换为16kHz单声道WAV格式'"
+      ]
+    },
+    {
+      "name": "语音合成推理",
+      "env_name": "cosyvoice-env",
+      "required_inputs": [
+        "input_text",
+        "mode"
+      ],
+      "commands": [
+        "cd {work_dir}",
+        "cat > ./run_cosyvoice.py << 'EOF'",
+        "import sys",
+        "import os",
+        "sys.path.append('third_party/Matcha-TTS')",
+        "from cosyvoice.cli.cosyvoice import AutoModel",
+        "import torchaudio",
+        "import torch",
+        "from funasr import AutoModel as FunASRAutoModel",
+        "from funasr.utils.postprocess_utils import rich_transcription_postprocess",
+        "# ASR识别参考音频",
+        "asr_model = FunASRAutoModel(model=\"iic/SenseVoiceSmall\",trust_remote_code=True, device=\"cuda:0\")",
+        "asr_res = asr_model.generate(input=\"{server_output_dir}/sample_audio.wav\",cache={},language=\"auto\",use_itn=False,batch_size=64)",
+        "asr_text = rich_transcription_postprocess(asr_res[0]['text'])",
+        "print(f'参考音频识别结果: {asr_text}')",
+        "# 加载模型",
+        "cosyvoice = AutoModel(model_dir='pretrained_models/Fun-CosyVoice3-0.5B')",
+        "# 获取输出目录",
+        "output_dir = '{server_output_dir}'",
+        "# 根据模式选择推理函数",
+        "mode = '{mode}'",
+        "print(f'使用模式: {mode}')",
+        "# 存储所有生成的音频片段",
+        "all_audio_segments = []",
+        "if mode == 'zero_shot':",
+        "    # 语音克隆",
+        "    reference_text = asr_text",
+        "    print(f'参考文本: {reference_text}')",
+        "    for i, j in enumerate(cosyvoice.inference_zero_shot('''{input_text}''', reference_text, '{server_output_dir}/sample_audio.wav', stream=False)):",
+        "        # 保存单个片段",
+        "        segment_path = f'{server_output_dir}/zero_shot_{i}.wav'",
+        "        torchaudio.save(segment_path, j['tts_speech'], cosyvoice.sample_rate)",
+        "        all_audio_segments.append(j['tts_speech'])",
+        "        print(f'生成片段 {i+1}, 时长: {j[\"tts_speech\"].shape[1]/cosyvoice.sample_rate:.2f}秒')",
+        "elif mode == 'instruct':",
+        "    # 指令控制语音合成",
+        "    instruction = '{instruction}'",
+        "    print(f'指令: {instruction}')",
+        "    for i, j in enumerate(cosyvoice.inference_instruct2('''{input_text}''', instruction, '{server_output_dir}/sample_audio.wav', stream=False)):",
+        "        # 保存单个片段",
+        "        segment_path = f'{server_output_dir}/instruct_{i}.wav'",
+        "        torchaudio.save(segment_path, j['tts_speech'], cosyvoice.sample_rate)",
+        "        all_audio_segments.append(j['tts_speech'])",
+        "        print(f'生成片段 {i+1}, 时长: {j[\"tts_speech\"].shape[1]/cosyvoice.sample_rate:.2f}秒')",
+        "print('语音合成完成')",
+        "EOF",
+        "python ./run_cosyvoice.py",
+        "rm -f {server_output_dir}/sample_audio.wav"
+    ]
+    }
+  ],
+  "endpoint": "cd {server_output_dir} && for f in *.wav; do ffmpeg -hide_banner -loglevel error -i \"$f\" -ar 44100 -ac 2 -c:a pcm_s16le \"temp_$f\" ; done && for f in temp_*.wav; do echo \"file '$f'\"; done > filelist.txt && ffmpeg -hide_banner -loglevel error -f concat -safe 0 -i filelist.txt -c copy -y {mode}_merged.wav && rm -f temp_*.wav filelist.txt && echo \"{server_output_dir}/{mode}_merged.wav\""
+}

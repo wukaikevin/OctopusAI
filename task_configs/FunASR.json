@@ -1,0 +1,87 @@
+{
+  "app_id": "fun-asr-app",
+  "name": "语音文本提取-FunASR",
+  "description": "基于FunASR的语音识别应用，支持将语音文件转换为文本。采用SenseVoiceSmall模型，具备自动语言检测能力，支持中英文混合语音识别。输出经过后处理优化，保留语音中的语言细节（如语气词、停顿等），适用于会议记录、字幕生成、语音转写等场景。",
+  "author": "FunAudioLLM",
+  "homepage": "https://github.com/alibaba/FunASR",
+  "email": "",
+  "inputs": [
+    {
+      "label": "语音文件",
+      "field_name": "sample_audio",
+      "type": "file",
+      "file_extensions": [
+        "mp3",
+        "wav",
+        "mp4"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/FunASR"
+  },
+  "model_path": "$HOME/.cache/funasr",
+  "server_output_file": "",
+  "server_output_dir": "/tmp/funasr_results",
+  "installs": [
+    {
+      "env_name": "funasr-env",
+      "python_version": "3.10",
+      "cuda_version": "12.8",
+      "commands": [
+        "conda install ffmpeg=7.1.1 -c conda-forge -y",
+        "rm -rf {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "git clone https://github.com/alibaba/FunASR.git {work_dir} && cd {work_dir} && pip install -e ./",
+        "pip install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "funasr-env",
+      "commands": [
+        "mkdir -p {server_output_dir}",
+        "rm -rf {server_output_dir}/*",
+        "export OMP_NUM_THREADS=1",
+        "cd {work_dir}"
+      ]
+    },
+    {
+      "name": "音频预处理",
+      "env_name": "funasr-env",
+      "commands": [
+        "ffmpeg -hide_banner -loglevel error -i '{sample_audio}' -ar 16000 -ac 1 -c:a pcm_s16le -y '{server_output_dir}/sample_audio.wav'",
+        "echo '音频预处理完成，已转换为16kHz单声道WAV格式'"
+      ]
+    },
+    {
+      "name": "文本提取",
+      "env_name": "funasr-env",
+      "commands": [
+        "cd {work_dir}",
+        "cat > ./run_funasr.py << 'EOF'",
+        "import sys",
+        "import os",
+        "from funasr import AutoModel as FunASRAutoModel",
+        "from funasr.utils.postprocess_utils import rich_transcription_postprocess",
+        "# ASR识别参考音频",
+        "asr_model = FunASRAutoModel(model=\"iic/SenseVoiceSmall\",trust_remote_code=True, device=\"cuda:0\")",
+        "asr_res = asr_model.generate(input=\"{server_output_dir}/sample_audio.wav\",cache={},language=\"auto\",use_itn=False,batch_size=64)",
+        "asr_text = rich_transcription_postprocess(asr_res[0]['text'])",
+        "# 保存到文件",
+        "output_file = os.path.join('{server_output_dir}', 'asr_result.txt')",
+        "with open(output_file, 'w', encoding='utf-8') as f:",
+        "    f.write(asr_text)",
+        "print(f'结果已保存到: {output_file}')",
+        "EOF",
+        "python ./run_funasr.py"
+    ]
+    }
+  ],
+  "endpoint": "cat \"{server_output_dir}/asr_result.txt\""
+}

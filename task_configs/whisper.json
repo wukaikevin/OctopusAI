@@ -1,0 +1,188 @@
+{
+  "app_id": "whisper",
+  "name": "视频字幕生成-whisper",
+  "description": "使用whisper模型生成视频字幕",
+  "author": "jiang",
+  "homepage": "https://github.com/openai/whisper",
+  "email": "",
+  "inputs": [
+    {
+      "label": "视频文件",
+      "field_name": "video",
+      "type": "file",
+      "file_extensions": [
+        "mp4",
+        "avi",
+        "mov",
+        "mkv"
+      ],
+      "default_value": "",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "视频中的语言（如：中文、英文、日文等）",
+      "field_name": "language",
+      "type": "select",
+      "default_value": "zh",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "中文", "value": "zh" },
+        { "label": "英文", "value": "en" },
+        { "label": "日文", "value": "ja" },
+        { "label": "韩文", "value": "ko" },
+        { "label": "西班牙文", "value": "es" },
+        { "label": "法文", "value": "fr" }
+      ]
+    },
+    {
+      "label": "生成字幕语言",
+      "field_name": "output_language",
+      "type": "select",
+      "default_value": "zh",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "中文", "value": "transcribe" },
+        { "label": "英文", "value": "translate" }
+      ]
+    },
+    {
+      "label": "字幕阴影效果",
+      "field_name": "subtitle_shadow",
+      "type": "select",
+      "default_value": "1",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "关闭", "value": "0" },
+        { "label": "开启", "value": "1" }
+      ]
+    },
+    {
+      "label": "字幕颜色",
+      "field_name": "subtitle_color",
+      "type": "select",
+      "default_value": "H00FFFFFF",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "绿色", "value": "H0000FF00" },
+        { "label": "蓝色", "value": "H00FF0000" },
+        { "label": "红色", "value": "H000000FF" },
+        { "label": "黄色", "value": "H0000FFFF" },
+        { "label": "紫色", "value": "H00FF00FF" },
+        { "label": "橙色", "value": "H0000A5FF" },
+        { "label": "白色", "value": "H00FFFFFF" },
+        { "label": "黑色", "value": "H00000000" }
+      ]
+    },
+    {
+      "label": "字幕位置",
+      "field_name": "subtitle_position",
+      "type": "select",
+      "default_value": "2",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "上中", "value": "8" },
+        { "label": "中中", "value": "5" },
+        { "label": "下中", "value": "2" },
+        { "label": "上左", "value": "7" },
+        { "label": "中左", "value": "4" },
+        { "label": "下左", "value": "1" },
+        { "label": "上右", "value": "9" },
+        { "label": "中右", "value": "6" },
+        { "label": "下右", "value": "3" }
+      ]
+    },
+    {
+      "label": "字幕轮廓的宽度,单位为像素",
+      "field_name": "subtitle_outline_width",
+      "type": "text",
+      "default_value": "2",
+      "editable": true,
+      "required": true
+    },
+    {
+      "label": "字幕边框颜色",
+      "field_name": "subtitle_outline_color",
+      "type": "select",
+      "default_value": "H00000000",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "绿色", "value": "H0000FF00" },
+        { "label": "蓝色", "value": "H00FF0000" },
+        { "label": "红色", "value": "H000000FF" },
+        { "label": "黄色", "value": "H0000FFFF" },
+        { "label": "紫色", "value": "H00FF00FF" },
+        { "label": "橙色", "value": "H0000A5FF" },
+        { "label": "白色", "value": "H00FFFFFF" },
+        { "label": "黑色", "value": "H00000000" }
+      ]
+    },
+    {
+      "label": "字幕与视频边缘的垂直距离",
+      "field_name": "subtitle_margin_v",
+      "type": "text",
+      "default_value": "20",
+      "editable": true,
+      "required": true
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/Whisper"
+  },
+  "model_path": "$HOME/.cache/whisper",
+  "server_output_file": "",
+  "server_output_dir": "/tmp/whisper_results",
+  "installs": [
+    {
+      "env_name": "whisper-env",
+      "python_version": "3.12",
+      "cuda_version": "12.8",
+      "commands": [
+        "apt-get install fonts-noto-cjk",
+        "conda install ffmpeg=7.1.1 -c conda-forge -y",
+        "rm -rf {work_dir}",
+        "mkdir -p {server_output_dir}",
+        "pip install openai-whisper",
+        "pip install setuptools-rust"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "环境准备",
+      "env_name": "whisper-env",
+      "commands": [
+        "mkdir -p {server_output_dir} {work_dir}",
+        "rm -rf {server_output_dir}/*",
+        "export OMP_NUM_THREADS=1",
+        "cd {work_dir}"
+      ]
+    },
+    {
+      "name": "音频内容识别",
+      "env_name": "whisper-env",
+      "commands": [
+        "echo \"whisper {video} --model large-v3 --language {language}  --task {output_language}\"",
+        "whisper {video} --model large-v3 --language {language}  --task {output_language}",
+        "echo '字幕生成完成'"
+      ]
+    },
+    {
+      "name": "字幕烧制到视频",
+      "env_name": "whisper-env",
+      "commands": [
+        "ls",
+        "data=$(echo {video} | sed 's/.mp4$/.srt/g' | xargs basename)",
+        "echo $data",
+        "ffmpeg -i {video} -vf \"subtitles=./'$data' :force_style='PrimaryColour=&{subtitle_color}&,OutlineColour=&{subtitle_outline_color}&,Outline={subtitle_outline_width},Shadow={subtitle_shadow},Alignment={subtitle_position},MarginV={subtitle_margin_v}'\" -c:a copy {server_output_dir}/output_top_green.mp4"
+      ]
+    }
+  ],
+  "endpoint": "echo \"{server_output_dir}/output_top_green.mp4\""
+}

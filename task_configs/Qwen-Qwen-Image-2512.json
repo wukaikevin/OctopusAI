@@ -1,0 +1,115 @@
+{
+  "variables": {"work_dir": "$HOME/Qwen-Image-2512"},
+  "author": "Qwen",
+  "inputs": [
+    {
+      "editable": true,
+      "default_value": "A 20-year-old East Asian girl with delicate, charming features and large, bright brown eyes---expressive and lively, with a cheerful or subtly smiling expression.",
+      "label": "提示词",
+      "type": "textarea",
+      "required": true,
+      "field_name": "prompt"
+    },
+    {
+      "editable": true,
+      "default_value": "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲。",
+      "label": "负向提示词",
+      "type": "textarea",
+      "required": false,
+      "field_name": "negative_prompt"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "1:1",
+          "value": "1:1"
+        },
+        {
+          "label": "16:9",
+          "value": "16:9"
+        },
+        {
+          "label": "9:16",
+          "value": "9:16"
+        },
+        {
+          "label": "4:3",
+          "value": "4:3"
+        },
+        {
+          "label": "3:4",
+          "value": "3:4"
+        },
+        {
+          "label": "3:2",
+          "value": "3:2"
+        },
+        {
+          "label": "2:3",
+          "value": "2:3"
+        }
+      ],
+      "default_value": "16:9",
+      "label": "图片比例",
+      "type": "select",
+      "required": true,
+      "field_name": "aspect_ratio"
+    },
+    {
+      "editable": true,
+      "default_value": 50,
+      "label": "推理步数",
+      "type": "number",
+      "required": false,
+      "field_name": "num_inference_steps"
+    },
+    {
+      "editable": true,
+      "default_value": 4,
+      "label": "CFG scale",
+      "type": "number",
+      "required": false,
+      "field_name": "true_cfg_scale"
+    },
+    {
+      "editable": true,
+      "default_value": 42,
+      "label": "随机种子",
+      "type": "number",
+      "required": false,
+      "field_name": "seed"
+    }
+  ],
+  "batch": [{
+    "env_name": "qwen-image-2512",
+    "name": "图像生成",
+    "commands": [
+      "mkdir -p $(dirname {server_output})",
+      "export PROMPT=\"{prompt}\"",
+      "export NEG_PROMPT=\"{negative_prompt}\"",
+      "python -c \"import torch; from diffusers import DiffusionPipeline; model_name = 'Qwen/Qwen-Image-2512'; torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32; device = 'cuda' if torch.cuda.is_available() else 'cpu'; pipe = DiffusionPipeline.from_pretrained(model_name, torch_dtype=torch_dtype).to(device); aspect_ratios = {'1:1': (1328, 1328), '16:9': (1664, 928), '9:16': (928, 1664), '4:3': (1472, 1104), '3:4': (1104, 1472), '3:2': (1584, 1056), '2:3': (1056, 1584)}; ratio_key = '{aspect_ratio}'; width, height = aspect_ratios.get(ratio_key, (1328, 1328)); generator = torch.Generator(device).manual_seed({seed}); image = pipe(prompt='$PROMPT', negative_prompt='$NEG_PROMPT', width=width, height=height, num_inference_steps={num_inference_steps}, true_cfg_scale={true_cfg_scale}, generator=generator).images[0]; image.save('{server_output}')\""
+    ]
+  }],
+  "description": "Qwen-Image-2512是一个强大的文本到图像生成模型，能够根据文本描述生成高分辨率、高真实感的图片。该模型在人物写实、自然细节和文字渲染方面有显著提升，支持多种宽高比输出。",
+  "model_path": "$HOME/.cache/modelscope/hub/Qwen/Qwen-Image-2512",
+  "installs": [{
+    "env_name": "qwen-image-2512",
+    "cuda_version": "12.1",
+    "python_version": "3.10",
+    "commands": [
+      "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121",
+      "pip install \"modelscope[multi-modal]\"",
+      "pip install diffusers transformers accelerate opencv-python",
+      "mkdir -p {model_path}",
+      "rm -rf {work_dir}",
+      "mkdir -p {work_dir}"
+    ]
+  }],
+  "uploads": [],
+  "endpoint": "echo \"{server_output}\"",
+  "server_output": "$HOME/Qwen-Image-2512/output",
+  "name": "图像生成-Qwen-Image-2512",
+  "app_id": "Qwen-Qwen-Image-2512",
+  "homepage": "https://www.modelscope.cn/models/Qwen/Qwen-Image-2512"
+}

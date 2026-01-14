@@ -1,0 +1,83 @@
+{
+  "app_id": "RobustVideoMatting",
+  "name": "视频人物背景替换-RobustVideoMatting",
+  "description": "基于RobustVideoMatting模型的视频人物背景替换工具，采用先进的视频抠像技术实现人物与背景分离。支持使用静态图像或动态视频作为替换背景，自动处理视频每一帧的抠像与合成，边缘过渡自然流畅。适用于虚拟背景制作、绿幕替换、视频特效、直播背景定制等场景。",
+  "author": "PeterL1n",
+  "homepage": "https://github.com/PeterL1n/RobustVideoMatting",
+  "email": "wuk@qq.com",
+  "inputs": [
+    {
+      "label": "人物视频",
+      "field_name": "input_source",
+      "type": "file",
+      "default_value": "",
+      "editable": true,
+      "required": true,
+      "file_extensions": [
+        "mp4"
+      ]
+    },
+    {
+      "label": "替换背景文件（图像或者视频均可）",
+      "field_name": "background",
+      "type": "file",
+      "default_value": "",
+      "editable": true,
+      "required": true,
+      "file_extensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "mp4"
+      ]
+    }
+  ],
+  "variables": {
+    "work_dir": "$HOME/RobustVideoMatting"
+  },
+  "server_output_file": "/tmp/RobustVideoMatting_results/result.mp4",
+  "server_output_dir": "/tmp/RobustVideoMatting_results",
+  "model_path": "",
+  "installs": [
+    {
+      "env_name": "RobustVideoMatting",
+      "python_version": "3.10",
+      "cuda_version": "12.8",
+      "commands": [
+        "mkdir -p {server_output_dir}",
+        "rm -rf {work_dir}",
+        "apt install ffmpeg libx264-dev -y",
+        "git clone https://github.com/PeterL1n/RobustVideoMatting.git {work_dir}",
+        "cd {work_dir}",
+        "conda install -y -c conda-forge av",
+        "pip install opencv-python moviepy imageio[ffmpeg] imageio-ffmpeg pillow",
+        "pip install torch torchvision tqdm pims numpy psutil"
+      ]
+    }
+  ],
+  "batch": [
+    {
+      "name": "视频合成",
+      "env_name": "RobustVideoMatting",
+      "commands": [
+        "rm -rf {server_output_dir}/*",
+        "cd {work_dir}",
+        "cp /tmp/RobustVideoMatting/run.py {work_dir}/run.py",
+        "cp /tmp/RobustVideoMatting/rvm_configs.yaml {work_dir}/rvm_configs.yaml",
+        "python -c \"import torch; print(f'PyTorch版本: {torch.__version__}'); print(f'CUDA是否可用: {torch.cuda.is_available()}'); (print(f'CUDA版本: {torch.version.cuda}'), print(f'cuDNN版本: {torch.backends.cudnn.version()}'), print(f'GPU数量: {torch.cuda.device_count()}'), [print(f'GPU {i}: {torch.cuda.get_device_name(i)}') for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else None\"",
+        "python run.py --source {input_source} --background {background} --output {server_output_file} --resnet"
+      ]
+    }
+  ],
+  "uploads":[
+    {
+      "source_path": "RobustVideoMatting/run.py",
+      "server_path": "/tmp/RobustVideoMatting/run.py"
+    },
+    {
+      "source_path": "RobustVideoMatting/rvm_configs.yaml",
+      "server_path": "/tmp/RobustVideoMatting/rvm_configs.yaml"
+    }
+  ],
+  "endpoint":"echo \"{server_output_file}\""
+}

@@ -1,0 +1,270 @@
+{
+  "variables": {"work_dir": "$HOME/InspireMusic"},
+  "author": "通义实验室",
+  "inputs": [
+    {
+      "editable": true,
+      "default_value": "Experience soothing and sensual instrumental jazz with a touch of Bossa Nova, perfect for a relaxing restaurant or spa ambiance.",
+      "label": "创作提示",
+      "type": "textarea",
+      "required": true,
+      "field_name": "text"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "随机",
+          "value": "random"
+        },
+        {
+          "label": "主歌",
+          "value": "verse"
+        },
+        {
+          "label": "副歌",
+          "value": "chorus"
+        },
+        {
+          "label": "前奏",
+          "value": "intro"
+        },
+        {
+          "label": "尾奏",
+          "value": "outro"
+        }
+      ],
+      "default_value": "intro",
+      "label": "音频标签生成模式",
+      "type": "select",
+      "required": true,
+      "field_name": "chorus"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "WAV",
+          "value": "wav"
+        },
+        {
+          "label": "MP3",
+          "value": "mp3"
+        },
+        {
+          "label": "M4A",
+          "value": "m4a"
+        },
+        {
+          "label": "FLAC",
+          "value": "flac"
+        }
+      ],
+      "default_value": "wav",
+      "label": "输出音频格式",
+      "type": "select",
+      "required": true,
+      "field_name": "format"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "24000Hz",
+          "value": 24000
+        },
+        {
+          "label": "48000Hz",
+          "value": 48000
+        }
+      ],
+      "default_value": 48000,
+      "label": "输出音频采样率",
+      "type": "select",
+      "required": true,
+      "field_name": "output_sample_rate"
+    },
+    {
+      "editable": true,
+      "default_value": 0,
+      "label": "开始时间（秒）",
+      "type": "number",
+      "required": true,
+      "field_name": "time_start"
+    },
+    {
+      "editable": true,
+      "default_value": 30,
+      "label": "结束时间（秒）",
+      "type": "number",
+      "required": true,
+      "field_name": "time_end"
+    },
+    {
+      "editable": true,
+      "default_value": 10,
+      "label": "最小生成音频长度（秒）",
+      "type": "number",
+      "required": true,
+      "field_name": "min_generate_audio_seconds"
+    },
+    {
+      "editable": true,
+      "default_value": 30,
+      "label": "最大生成音频长度（秒）",
+      "type": "number",
+      "required": true,
+      "field_name": "max_generate_audio_seconds"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ],
+      "default_value": true,
+      "label": "应用淡出效果",
+      "type": "select",
+      "required": true,
+      "field_name": "fade_out"
+    },
+    {
+      "editable": true,
+      "default_value": 1,
+      "label": "淡出持续时间（秒）",
+      "type": "number",
+      "required": true,
+      "field_name": "fade_out_duration"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ],
+      "default_value": true,
+      "label": "修剪生成音频末尾静音",
+      "type": "select",
+      "required": false,
+      "field_name": "trim"
+    },
+    {
+      "file_extensions": ["mp4"],
+      "editable": true,
+      "default_value": "",
+      "label": "融合视频（可选）",
+      "type": "file",
+      "required": true,
+      "field_name": "video"
+    }
+  ],
+  "batch": [
+    {
+      "cooperation_id": "llm-api-chat_step1",
+      "env_name": "InspireMusic-1.5B-Long",
+      "name": "提示词扩展",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "{text}",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "false",
+            "field_name": "stream"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "auto",
+            "field_name": "response_format"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "你是一个音乐创作提示词助手，基于用户提供的基本提示词创建一段音乐创作提示词、使用专业的声乐指导术语描述需求，包括但不限于对乐器、音谱、风格、音色等详细专业描述，使用单行文字，使用英文输出。",
+            "field_name": "system_prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "glm-4.7",
+            "field_name": "model"
+          },
+          {
+            "input_value_type": "EMPTY_VALUE",
+            "value": "0",
+            "field_name": "temperature"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "10240",
+            "field_name": "max_tokens"
+          }
+        ],
+        "app_id": "llm-api-chat"
+      }
+    },
+    {
+      "env_name": "InspireMusic-1.5B-Long",
+      "name": "生成音频",
+      "commands": [
+        "rm -rf {server_output}/*",
+        "mkdir -p {server_output}",
+        "cd {work_dir}",
+        "cd examples/music_generation",
+        "export TEXT_PROMPT=\"endpoint://llm-api-chat_step1\"",
+        "echo \"{$TEXT_PROMPT}\"",
+        "python -m inspiremusic.cli.inference --task text-to-music -m \"InspireMusic-1.5B-Long\" -g 0 -t \"$TEXT_PROMPT\" -c {chorus} --format {format} --output_sample_rate {output_sample_rate} -s {time_start} -e {time_end} --min_generate_audio_seconds {min_generate_audio_seconds} --max_generate_audio_seconds {max_generate_audio_seconds} --fp16 True --fade_out {fade_out} --fade_out_duration {fade_out_duration} --trim {trim} -r {server_output} -o result -f {format}",
+        "ffmpeg -hide_banner -loglevel error -i {server_output}/result.{format} -c:a aac -vn -y {server_output}/result.mp4"
+      ]
+    },
+    {
+      "env_name": "InspireMusic-1.5B-Long",
+      "name": "融合视频",
+      "required_inputs": ["video"],
+      "commands": ["ffmpeg -hide_banner -loglevel error -i {video} -i {server_output}/result.{format} -filter_complex \"[1:a]volume=0.5[a2];[0:a][a2]amix=inputs=2:duration=longest\" -c:v copy -c:a aac -shortest -y {server_output}/result.mp4"]
+    }
+  ],
+  "description": "InspireMusic 专注于音乐生成、歌曲生成和音频生成。一个为音乐、歌曲和音频生成设计的统一工具包。具有高质量音频的音乐生成任务。长篇音乐生成。",
+  "model_path": "$HOME/.cache/InspireMusic/pretrained_models",
+  "installs": [{
+    "env_name": "InspireMusic-1.5B-Long",
+    "cuda_version": "12.8",
+    "python_version": "3.12.9",
+    "commands": [
+      "cd ~",
+      "rm -rf {work_dir}",
+      "mkdir -p {model_path}",
+      "mkdir -p {server_output}",
+      "pip install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128",
+      "pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.2/flash_attn-2.8.2+cu12torch2.7cxx11abiFALSE-cp312-cp312-linux_x86_64.whl",
+      "git clone --recursive https://github.com/FunAudioLLM/InspireMusic.git {work_dir}",
+      "cd {work_dir}",
+      "git submodule update --recursive",
+      "conda install -y -c conda-forge pynini==2.1.5 ffmpeg==7.1.1",
+      "sed -i '/flash-attn/d' requirements.txt",
+      "pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com",
+      "pip install -U peft",
+      "ln -sf {model_path} pretrained_models"
+    ]
+  }],
+  "endpoint": "echo \"{server_output}/result.mp4\"",
+  "server_output": "/tmp/InspireMusic_results",
+  "name": "音乐创作-InspireMusic-1.5B-Long",
+  "app_id": "InspireMusic-1.5B-Long",
+  "email": "admin@xienlive.com",
+  "server_output_file": "",
+  "homepage": "https://www.modelscope.cn/models/iic/InspireMusic-1.5B-Long"
+}
