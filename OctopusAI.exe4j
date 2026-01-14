@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<exe4j version="9.0" transformSequenceNumber="3">
+  <directoryPresets config="E:/projects/PushClient/out/artifacts/VideoAgent_jar" />
+  <application name="OctopusAI" distributionSourceDir="E:/projects/PushClient/out/artifacts/VideoAgent_jar" />
+  <executable name="OctopusAI" iconSet="true" iconFile="E:/projects/PushClient/out/artifacts/VideoAgent_jar/icon.ico" executableDir="." executableMode="gui" checkConsoleParameter="true" />
+  <java mainClass="com.xienlive.ai.video.agent.Launcher" vmParameters="-Dfile.encoding=UTF-8" minVersion="1.8">
+    <searchSequence>
+      <directory location="./jdk-11.0.17" />
+    </searchSequence>
+    <classPath>
+      <archive location="VideoAgent.jar" failOnError="false" />
+      <scanDirectory location="./javafx-sdk-11/lib" failOnError="false" />
+      <scanDirectory location="./jxbrowser" failOnError="false" />
+    </classPath>
+    <nativeLibraryDirectories>
+      <directory name="." />
+    </nativeLibraryDirectories>
+  </java>
+</exe4j>
