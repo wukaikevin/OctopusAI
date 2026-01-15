@@ -1,188 +1,432 @@
 {
-  "app_id": "whisper",
-  "name": "视频字幕生成-whisper",
-  "description": "使用whisper模型生成视频字幕",
+  "variables": {"work_dir": "$HOME/Whisper"},
+  "server_output": "/tmp/whisper_results/result.mp4",
   "author": "jiang",
-  "homepage": "https://github.com/openai/whisper",
-  "email": "",
   "inputs": [
     {
-      "label": "视频文件",
-      "field_name": "video",
-      "type": "file",
       "file_extensions": [
         "mp4",
         "avi",
         "mov",
         "mkv"
       ],
+      "editable": true,
       "default_value": "",
-      "editable": true,
-      "required": true
+      "label": "视频文件",
+      "type": "file",
+      "required": true,
+      "field_name": "video"
     },
     {
+      "editable": true,
+      "options": [
+        {
+          "label": "中文",
+          "value": "zh"
+        },
+        {
+          "label": "英文",
+          "value": "en"
+        },
+        {
+          "label": "日文",
+          "value": "ja"
+        },
+        {
+          "label": "韩文",
+          "value": "ko"
+        },
+        {
+          "label": "西班牙文",
+          "value": "es"
+        },
+        {
+          "label": "法文",
+          "value": "fr"
+        }
+      ],
+      "default_value": "zh",
       "label": "视频中的语言（如：中文、英文、日文等）",
-      "field_name": "language",
       "type": "select",
-      "default_value": "zh",
-      "editable": true,
       "required": true,
-      "options": [
-        { "label": "中文", "value": "zh" },
-        { "label": "英文", "value": "en" },
-        { "label": "日文", "value": "ja" },
-        { "label": "韩文", "value": "ko" },
-        { "label": "西班牙文", "value": "es" },
-        { "label": "法文", "value": "fr" }
-      ]
+      "field_name": "language"
     },
     {
+      "editable": true,
+      "options": [
+        {
+          "label": "中文",
+          "value": "transcribe"
+        },
+        {
+          "label": "英文",
+          "value": "translate"
+        }
+      ],
+      "default_value": "transcribe",
       "label": "生成字幕语言",
-      "field_name": "output_language",
       "type": "select",
-      "default_value": "zh",
-      "editable": true,
       "required": true,
-      "options": [
-        { "label": "中文", "value": "transcribe" },
-        { "label": "英文", "value": "translate" }
-      ]
+      "field_name": "output_language"
     },
     {
-      "label": "字幕阴影效果",
-      "field_name": "subtitle_shadow",
-      "type": "select",
+      "editable": true,
+      "options": [
+        {
+          "label": "关闭",
+          "value": "0"
+        },
+        {
+          "label": "开启",
+          "value": "1"
+        }
+      ],
       "default_value": "1",
-      "editable": true,
+      "label": "字幕阴影效果",
+      "type": "select",
       "required": true,
-      "options": [
-        { "label": "关闭", "value": "0" },
-        { "label": "开启", "value": "1" }
-      ]
+      "field_name": "subtitle_shadow"
     },
     {
-      "label": "字幕颜色",
-      "field_name": "subtitle_color",
-      "type": "select",
+      "editable": true,
+      "options": [
+        {
+          "label": "绿色",
+          "value": "H0000FF00"
+        },
+        {
+          "label": "蓝色",
+          "value": "H00FF0000"
+        },
+        {
+          "label": "红色",
+          "value": "H000000FF"
+        },
+        {
+          "label": "黄色",
+          "value": "H0000FFFF"
+        },
+        {
+          "label": "紫色",
+          "value": "H00FF00FF"
+        },
+        {
+          "label": "橙色",
+          "value": "H0000A5FF"
+        },
+        {
+          "label": "白色",
+          "value": "H00FFFFFF"
+        },
+        {
+          "label": "黑色",
+          "value": "H00000000"
+        }
+      ],
       "default_value": "H00FFFFFF",
-      "editable": true,
+      "label": "字幕颜色",
+      "type": "select",
       "required": true,
-      "options": [
-        { "label": "绿色", "value": "H0000FF00" },
-        { "label": "蓝色", "value": "H00FF0000" },
-        { "label": "红色", "value": "H000000FF" },
-        { "label": "黄色", "value": "H0000FFFF" },
-        { "label": "紫色", "value": "H00FF00FF" },
-        { "label": "橙色", "value": "H0000A5FF" },
-        { "label": "白色", "value": "H00FFFFFF" },
-        { "label": "黑色", "value": "H00000000" }
-      ]
+      "field_name": "subtitle_color"
     },
     {
+      "editable": true,
+      "options": [
+        {
+          "label": "上中",
+          "value": "8"
+        },
+        {
+          "label": "中中",
+          "value": "5"
+        },
+        {
+          "label": "下中",
+          "value": "2"
+        },
+        {
+          "label": "上左",
+          "value": "7"
+        },
+        {
+          "label": "中左",
+          "value": "4"
+        },
+        {
+          "label": "下左",
+          "value": "1"
+        },
+        {
+          "label": "上右",
+          "value": "9"
+        },
+        {
+          "label": "中右",
+          "value": "6"
+        },
+        {
+          "label": "下右",
+          "value": "3"
+        }
+      ],
+      "default_value": "2",
       "label": "字幕位置",
-      "field_name": "subtitle_position",
       "type": "select",
-      "default_value": "2",
-      "editable": true,
       "required": true,
-      "options": [
-        { "label": "上中", "value": "8" },
-        { "label": "中中", "value": "5" },
-        { "label": "下中", "value": "2" },
-        { "label": "上左", "value": "7" },
-        { "label": "中左", "value": "4" },
-        { "label": "下左", "value": "1" },
-        { "label": "上右", "value": "9" },
-        { "label": "中右", "value": "6" },
-        { "label": "下右", "value": "3" }
-      ]
+      "field_name": "subtitle_position"
     },
     {
+      "editable": true,
+      "default_value": "2",
       "label": "字幕轮廓的宽度,单位为像素",
-      "field_name": "subtitle_outline_width",
       "type": "text",
-      "default_value": "2",
-      "editable": true,
-      "required": true
-    },
-    {
-      "label": "字幕边框颜色",
-      "field_name": "subtitle_outline_color",
-      "type": "select",
-      "default_value": "H00000000",
-      "editable": true,
       "required": true,
-      "options": [
-        { "label": "绿色", "value": "H0000FF00" },
-        { "label": "蓝色", "value": "H00FF0000" },
-        { "label": "红色", "value": "H000000FF" },
-        { "label": "黄色", "value": "H0000FFFF" },
-        { "label": "紫色", "value": "H00FF00FF" },
-        { "label": "橙色", "value": "H0000A5FF" },
-        { "label": "白色", "value": "H00FFFFFF" },
-        { "label": "黑色", "value": "H00000000" }
-      ]
+      "field_name": "subtitle_outline_width"
     },
     {
-      "label": "字幕与视频边缘的垂直距离",
-      "field_name": "subtitle_margin_v",
-      "type": "text",
-      "default_value": "20",
       "editable": true,
-      "required": true
-    }
-  ],
-  "variables": {
-    "work_dir": "$HOME/Whisper"
-  },
-  "model_path": "$HOME/.cache/whisper",
-  "server_output_file": "",
-  "server_output_dir": "/tmp/whisper_results",
-  "installs": [
+      "options": [
+        {
+          "label": "绿色",
+          "value": "H0000FF00"
+        },
+        {
+          "label": "蓝色",
+          "value": "H00FF0000"
+        },
+        {
+          "label": "红色",
+          "value": "H000000FF"
+        },
+        {
+          "label": "黄色",
+          "value": "H0000FFFF"
+        },
+        {
+          "label": "紫色",
+          "value": "H00FF00FF"
+        },
+        {
+          "label": "橙色",
+          "value": "H0000A5FF"
+        },
+        {
+          "label": "白色",
+          "value": "H00FFFFFF"
+        },
+        {
+          "label": "黑色",
+          "value": "H00000000"
+        }
+      ],
+      "default_value": "H00000000",
+      "label": "字幕边框颜色",
+      "type": "select",
+      "required": true,
+      "field_name": "subtitle_outline_color"
+    },
     {
-      "env_name": "whisper-env",
-      "python_version": "3.12",
-      "cuda_version": "12.8",
-      "commands": [
-        "apt-get install fonts-noto-cjk",
-        "conda install ffmpeg=7.1.1 -c conda-forge -y",
-        "rm -rf {work_dir}",
-        "mkdir -p {server_output_dir}",
-        "pip install openai-whisper",
-        "pip install setuptools-rust"
-      ]
+      "editable": true,
+      "default_value": "20",
+      "label": "字幕与视频边缘的垂直距离",
+      "type": "text",
+      "required": true,
+      "field_name": "subtitle_margin_v"
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "小",
+          "value": "small"
+        },
+        {
+          "label": "中",
+          "value": "medium"
+        },
+        {
+          "label": "大",
+          "value": "large"
+        }
+      ],
+      "default_value": "medium",
+      "label": "字幕文字大小",
+      "type": "select",
+      "required": true,
+      "field_name": "subtitle_font_size"
     }
   ],
   "batch": [
     {
-      "name": "环境准备",
       "env_name": "whisper-env",
+      "name": "环境准备",
       "commands": [
-        "mkdir -p {server_output_dir} {work_dir}",
-        "rm -rf {server_output_dir}/*",
+        "mkdir -p $(dirname {server_output})",
+        "rm -rf {server_output}/*",
         "export OMP_NUM_THREADS=1",
         "cd {work_dir}"
       ]
     },
     {
-      "name": "音频内容识别",
       "env_name": "whisper-env",
+      "name": "音频内容识别",
       "commands": [
-        "echo \"whisper {video} --model large-v3 --language {language}  --task {output_language}\"",
-        "whisper {video} --model large-v3 --language {language}  --task {output_language}",
+        "echo \"开始生成字幕...\"",
+        "video_dir=$(dirname \"{video}\")",
+        "video_filename=$(basename \"{video}\")",
+        "srt_filename=$(echo \"$video_filename\" | sed 's/\\.[^.]*$/.srt/')",
+        "srt_path=\"$video_dir/$srt_filename\"",
+        "echo \"视频文件: {video}\"",
+        "echo \"字幕文件路径: $srt_path\"",
+        "whisper \"{video}\" --model large-v3 --language {language} --task {output_language} --output_dir \"$video_dir\" --output_format srt",
+        "echo \"原始字幕生成完成\"",
+        "cat \"$srt_path\" > /tmp/original_subtitles.srt"
+      ]
+    },
+    {
+      "cooperation_id": "llm-api-chat_step1",
+      "env_name": "whisper-env",
+      "name": "字幕错别字修正",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "file:///tmp/original_subtitles.srt",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "false",
+            "field_name": "stream"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "auto",
+            "field_name": "response_format"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "你是一个专业的视频字幕纠错助手。请修正用户提供的字幕文本中的错别字、同音字错误、标点符号错误，保持SRT格式不变，只修正文本内容，不改变时间轴。每行字幕都要保留序号、时间轴和文本内容三个部分。强调：纠错仅针对文字发音错误，不要改变原有的词语结构。",
+            "field_name": "system_prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "glm-4-flash",
+            "field_name": "model"
+          },
+          {
+            "input_value_type": "EMPTY_VALUE",
+            "value": "0",
+            "field_name": "temperature"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "4096",
+            "field_name": "max_tokens"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "disabled",
+            "field_name": "thinking"
+          }
+        ],
+        "app_id": "llm-api-chat",
+        "output_file": "/tmp/corrected_subtitles.srt"
+      }
+    },
+    {
+      "env_name": "whisper-env",
+      "name": "应用修正后的字幕",
+      "commands": [
+        "echo \"应用AI修正后的字幕...\"",
+        "video_dir=$(dirname \"{video}\")",
+        "video_filename=$(basename \"{video}\")",
+        "srt_filename=$(echo \"$video_filename\" | sed 's/\\.[^.]*$/.srt/')",
+        "srt_path=\"$video_dir/$srt_filename\"",
+        "if [ -f \"/tmp/llm-api-chat-results/response.txt\" ]; then",
+        "  cat /tmp/llm-api-chat-results/response.txt > \"$srt_path\"",
+        "  echo \"AI纠错完成，字幕已更新\"",
+        "else",
+        "  echo \"AI纠错失败，使用原始字幕\"",
+        "fi",
+        "echo \"字幕文件路径: $srt_path\""
+      ]
+    },
+    {
+      "env_name": "whisper-env",
+      "name": "字幕分割处理",
+      "commands": [
+        "echo \"开始字幕分割处理...\"",
+        "echo \"用户设定的字幕大小: {subtitle_font_size}\"",
+        "cat > /tmp/process_subtitle.py << 'SCRIPT'\nimport srt\nimport re\nfrom datetime import timedelta\nimport os\nimport subprocess\n\n# 从环境变量获取路径\nsrt_path = os.environ.get('SRT_PATH')\nfont_size = os.environ.get('FONT_SIZE', 'medium')\nvideo_path = os.environ.get('VIDEO_PATH')\n\n# 读取已修正的SRT文件\nwith open(srt_path, 'r', encoding='utf-8') as f:\n    subs = list(srt.parse(f.read()))\n\nprint(f'字幕数量: {len(subs)}')\n\n# 获取视频宽度\nprint(f'获取视频宽度: {video_path}')\nresult = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width', '-of', 'default=noprint_wrappers=1:nokey=1', video_path], capture_output=True, text=True)\nvideo_width = int(result.stdout.strip())\nprint(f'视频宽度: {video_width}像素')\n\n# 根据字幕大小确定字体大小（像素）和字数限制\nif font_size == 'small':\n    font_pixels = int(video_width * 0.018)\n    max_chars = 12\nelif font_size == 'large':\n    font_pixels = int(video_width * 0.032)\n    max_chars = 6\nelse:\n    font_pixels = int(video_width * 0.025)\n    max_chars = 9\n\n# 根据字体大小估算每个字符的宽度\nchar_width = font_pixels * 1.0\nmax_chars_per_line = int((video_width * 0.8) / char_width)\n\nprint(f'字幕大小: {font_size}')\nprint(f'字体像素: {font_pixels}px')\nprint(f'每行最多字符数: {max_chars_per_line}')\nprint(f'使用字数限制: {max_chars}')\n\n# 动态调整字数限制\nif max_chars_per_line < max_chars:\n    max_chars = max_chars_per_line\n    print(f'根据屏幕宽度调整字数限制为: {max_chars}')\n\n# 按字数限制分割字幕\nnew_subs = []\n\nfor sub in subs:\n    content = sub.content.strip()\n    if len(content) <= max_chars:\n        new_subs.append(sub)\n    else:\n        duration = (sub.end - sub.start).total_seconds()\n        separators = ['，', '。', '！', '？', '、']\n        parts = []\n        current = ''\n        for char in content:\n            current += char\n            if char in separators and len(current) >= max_chars * 0.7:\n                parts.append(current)\n                current = ''\n            elif len(current) >= max_chars:\n                parts.append(current)\n                current = ''\n        if current:\n            parts.append(current)\n        \n        time_per_char = duration / len(content)\n        current_time = sub.start\n        \n        for i, part in enumerate(parts):\n            part_chars = len(part)\n            part_duration = timedelta(seconds=part_chars * time_per_char)\n            part_end = current_time + part_duration\n            \n            if i == len(parts) - 1:\n                part_end = sub.end\n            \n            new_subs.append(srt.Subtitle(index=len(new_subs)+1, start=current_time, end=part_end, content=part.strip()))\n            current_time = part_end\n\nprint(f'分割后字幕数量: {len(new_subs)}')\n\n# 写回SRT文件\nwith open(srt_path, 'w', encoding='utf-8') as f:\n    f.write(srt.compose(new_subs))\n\nprint('字幕处理完成')\nSCRIPT",
+        "video_dir=$(dirname \"{video}\")",
+        "video_filename=$(basename \"{video}\")",
+        "srt_filename=$(echo \"$video_filename\" | sed 's/\\.[^.]*$/.srt/')",
+        "srt_path=\"$video_dir/$srt_filename\"",
+        "export SRT_PATH=\"$srt_path\"",
+        "export FONT_SIZE=\"{subtitle_font_size}\"",
+        "export VIDEO_PATH=\"{video}\"",
+        "python3 /tmp/process_subtitle.py",
         "echo '字幕生成完成'"
       ]
     },
     {
-      "name": "字幕烧制到视频",
       "env_name": "whisper-env",
+      "name": "字幕烧制到视频",
       "commands": [
-        "ls",
-        "data=$(echo {video} | sed 's/.mp4$/.srt/g' | xargs basename)",
-        "echo $data",
-        "ffmpeg -i {video} -vf \"subtitles=./'$data' :force_style='PrimaryColour=&{subtitle_color}&,OutlineColour=&{subtitle_outline_color}&,Outline={subtitle_outline_width},Shadow={subtitle_shadow},Alignment={subtitle_position},MarginV={subtitle_margin_v}'\" -c:a copy {server_output_dir}/output_top_green.mp4"
+        "echo \"开始烧制字幕...\"",
+        "video_dir=$(dirname \"{video}\")",
+        "video_filename=$(basename \"{video}\")",
+        "srt_filename=$(echo \"$video_filename\" | sed 's/\\.[^.]*$/.srt/')",
+        "srt_path=\"$video_dir/$srt_filename\"",
+        "echo \"视频文件: {video}\"",
+        "echo \"视频目录: $video_dir\"",
+        "echo \"视频文件名: $video_filename\"",
+        "echo \"字幕文件名: $srt_filename\"",
+        "echo \"字幕完整路径: $srt_path\"",
+        "echo \"列出视频目录的所有.srt文件:\"",
+        "ls -la \"$video_dir\"/*.srt 2>/dev/null || echo \"未找到.srt文件\"",
+        "if [ ! -f \"$srt_path\" ]; then echo \"错误: 字幕文件不存在: $srt_path\" && exit 1; fi",
+        "echo \"=== 字幕文件内容（前20行） ===\"",
+        "head -n 20 \"$srt_path\"",
+        "echo \"=== 字幕文件内容结束 ===\"",
+        "video_width=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=noprint_wrappers=1:nokey=1 \"{video}\")",
+        "echo \"视频宽度: $video_width\"",
+        "case {subtitle_font_size} in",
+        "  small) font_size=$(awk \"BEGIN {{printf \\\"%d\\\", $video_width * 0.018}}\") ;;",
+        "  medium) font_size=$(awk \"BEGIN {{printf \\\"%d\\\", $video_width * 0.025}}\") ;;",
+        "  large) font_size=$(awk \"BEGIN {{printf \\\"%d\\\", $video_width * 0.032}}\") ;;",
+        "  *) font_size=$(awk \"BEGIN {{printf \\\"%d\\\", $video_width * 0.025}}\") ;;",
+        "esac",
+        "echo \"字幕字体大小: $font_size\"",
+        "echo \"开始使用ffmpeg烧制字幕...\"",
+        "ffmpeg -hide_banner -loglevel error -y -i \"{video}\" -vf \"subtitles='$srt_path':force_style='PrimaryColour=&{subtitle_color}&,OutlineColour=&{subtitle_outline_color}&,Outline={subtitle_outline_width},Shadow={subtitle_shadow},Alignment={subtitle_position},MarginV={subtitle_margin_v},Fontname=Noto Sans CJK SC,Fontsize=$font_size'\" -c:a copy \"{server_output}\"",
+        "echo \"字幕烧制完成\"",
+        "ls -lh \"{server_output}\""
       ]
     }
   ],
-  "endpoint": "echo \"{server_output_dir}/output_top_green.mp4\""
+  "description": "使用whisper模型生成视频字幕",
+  "model_path": "$HOME/.cache/whisper",
+  "installs": [{
+    "env_name": "whisper-env",
+    "cuda_version": "12.8",
+    "python_version": "3.12",
+    "commands": [
+      "apt-get install -y fonts-noto-cjk",
+      "conda install -y ffmpeg=7.1.1 -c conda-forge",
+      "rm -rf {work_dir}",
+      "mkdir -p {work_dir}",
+      "mkdir -p {model_path}",
+      "pip install openai-whisper",
+      "pip install setuptools-rust",
+      "pip install srt"
+    ]
+  }],
+  "endpoint": "echo \"{server_output}\"",
+  "name": "视频字幕生成-whisper",
+  "app_id": "whisper",
+  "email": "",
+  "server_output_file": "",
+  "homepage": "https://github.com/openai/whisper"
 }

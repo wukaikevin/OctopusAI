@@ -4,7 +4,7 @@
   "inputs": [
     {
       "editable": true,
-      "default_value": "A 20-year-old East Asian girl with delicate, charming features and large, bright brown eyes---expressive and lively, with a cheerful or subtly smiling expression.",
+      "default_value": "A 20-year-old East Asian girl with delicate, charming features and large, bright brown eyes\u2014expressive and lively, with a cheerful or subtly smiling expression.",
       "label": "提示词",
       "type": "textarea",
       "required": true,
@@ -58,6 +58,14 @@
     },
     {
       "editable": true,
+      "default_value": 1,
+      "label": "生成数量",
+      "type": "number",
+      "required": false,
+      "field_name": "num_images"
+    },
+    {
+      "editable": true,
       "default_value": 50,
       "label": "推理步数",
       "type": "number",
@@ -85,13 +93,13 @@
     "env_name": "qwen-image-2512",
     "name": "图像生成",
     "commands": [
-      "mkdir -p $(dirname {server_output})",
+      "mkdir -p {server_output}",
       "export PROMPT=\"{prompt}\"",
       "export NEG_PROMPT=\"{negative_prompt}\"",
-      "python -c \"import torch; from diffusers import DiffusionPipeline; model_name = 'Qwen/Qwen-Image-2512'; torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32; device = 'cuda' if torch.cuda.is_available() else 'cpu'; pipe = DiffusionPipeline.from_pretrained(model_name, torch_dtype=torch_dtype).to(device); aspect_ratios = {'1:1': (1328, 1328), '16:9': (1664, 928), '9:16': (928, 1664), '4:3': (1472, 1104), '3:4': (1104, 1472), '3:2': (1584, 1056), '2:3': (1056, 1584)}; ratio_key = '{aspect_ratio}'; width, height = aspect_ratios.get(ratio_key, (1328, 1328)); generator = torch.Generator(device).manual_seed({seed}); image = pipe(prompt='$PROMPT', negative_prompt='$NEG_PROMPT', width=width, height=height, num_inference_steps={num_inference_steps}, true_cfg_scale={true_cfg_scale}, generator=generator).images[0]; image.save('{server_output}')\""
+      "for i in $(seq 1 {num_images}); do export SEED=$(({seed} + $i - 1)); export OUTPUT_FILE=\"{server_output}/image_${i}.png\"; python -c \"import torch; from modelscope import DiffusionPipeline; import os; model_name = 'Qwen/Qwen-Image-2512'; torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32; device = 'cuda' if torch.cuda.is_available() else 'cpu'; pipe = DiffusionPipeline.from_pretrained(model_name, torch_dtype=torch_dtype).to(device); aspect_ratios = {'1:1': (1328, 1328), '16:9': (1664, 928), '9:16': (928, 1664), '4:3': (1472, 1104), '3:4': (1104, 1472), '3:2': (1584, 1056), '2:3': (1056, 1584)}; ratio_key = '{aspect_ratio}'; width, height = aspect_ratios.get(ratio_key, (1328, 1328)); seed = int(os.getenv('SEED', '{seed}')); generator = torch.Generator(device).manual_seed(seed); image = pipe(prompt=os.getenv('PROMPT'), negative_prompt=os.getenv('NEG_PROMPT'), width=width, height=height, num_inference_steps={num_inference_steps}, true_cfg_scale={true_cfg_scale}, generator=generator).images[0]; output_path = os.getenv('OUTPUT_FILE'); image.save(output_path); print(f'Generated: {output_path}')\"; done"
     ]
   }],
-  "description": "Qwen-Image-2512是一个强大的文本到图像生成模型，能够根据文本描述生成高分辨率、高真实感的图片。该模型在人物写实、自然细节和文字渲染方面有显著提升，支持多种宽高比输出。",
+  "description": "Qwen-Image-2512是一个强大的文本到图像生成模型，能够根据文本描述生成高分辨率、高真实感的图片。该模型在人物写实、自然细节和文字渲染方面有显著提升，支持多种宽高比输出。支持批量生成多张图像，每次生成可使用递增的随机种子确保多样性。",
   "model_path": "$HOME/.cache/modelscope/hub/Qwen/Qwen-Image-2512",
   "installs": [{
     "env_name": "qwen-image-2512",
@@ -100,14 +108,13 @@
     "commands": [
       "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121",
       "pip install \"modelscope[multi-modal]\"",
-      "pip install diffusers transformers accelerate opencv-python",
       "mkdir -p {model_path}",
       "rm -rf {work_dir}",
       "mkdir -p {work_dir}"
     ]
   }],
   "uploads": [],
-  "endpoint": "echo \"{server_output}\"",
+  "endpoint": "echo \"{server_output}/image_1.png\"",
   "server_output": "$HOME/Qwen-Image-2512/output",
   "name": "图像生成-Qwen-Image-2512",
   "app_id": "Qwen-Qwen-Image-2512",

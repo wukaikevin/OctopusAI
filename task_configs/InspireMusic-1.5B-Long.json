@@ -218,6 +218,11 @@
             "input_value_type": "DEFAULT_VALUE",
             "value": "10240",
             "field_name": "max_tokens"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "disabled",
+            "field_name": "thinking"
           }
         ],
         "app_id": "llm-api-chat"

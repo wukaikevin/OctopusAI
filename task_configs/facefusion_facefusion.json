@@ -1,6 +1,6 @@
 {
   "app_id": "facefusion",
-  "name": "视频人脸替换-FaceFusion",
+  "name": "视频人脸处理-FaceFusion",
   "description": "基于FaceFusion的视频人脸替换工具，能够将指定的人脸图像替换到视频中的目标人物。支持高精度人脸检测与融合，自动进行人脸增强处理，确保替换效果自然逼真。支持多种视频格式（MP4/AVI/MOV/MKV），适用于视频创作、内容制作等场景。",
   "author": "FaceFusion Team",
   "homepage": "https://github.com/facefusion/facefusion",
@@ -17,10 +17,10 @@
         "png"
       ],
       "editable": true,
-      "required": true
+      "required": false
     },
     {
-      "label": "替换视频",
+      "label": "目标视频",
       "field_name": "input_video",
       "type": "file",
       "file_extensions": [
@@ -32,13 +32,30 @@
       "default_value": "",
       "editable": true,
       "required": true
+    },
+    {
+      "editable": true,
+      "options": [
+        {
+          "label": "人脸替换",
+          "value": "face_swapper"
+        },
+        {
+          "label": "人脸增强",
+          "value": "face_enhancer"
+        }
+      ],
+      "default_value": "face_swapper",
+      "label": "任务类型",
+      "type": "select",
+      "required": true,
+      "field_name": "task_type"
     }
   ],
   "variables": {
     "work_dir": "$HOME/facefusion"
   },
-  "server_output_file": "",
-  "server_output_dir": "/tmp/facefusion_results",
+  "server_output": "/tmp/facefusion_results/result.mp4",
   "model_path": "$HOME/.cache/facefusion_models",
   "installs": [
     {
@@ -61,11 +78,18 @@
       "name": "人脸融合",
       "env_name": "facefusion",
       "commands": [
-        "rm -rf {server_output_dir}/*",
-        "mkdir -p {server_output_dir}",
-        "cd {work_dir} && python facefusion.py headless-run --download-providers huggingface --execution-providers cuda --processors face_swapper face_enhancer --source-paths {face_image} --target-path {input_video} --output-path {server_output_dir}/result.mp4"
+        "mkdir -p $(dirname {server_output})",
+        "cd {work_dir}",
+        "if [ \"{task_type}\" = \"face_swapper\" ]; then",
+        "python facefusion.py headless-run --download-providers huggingface --execution-providers cuda --processors face_swapper face_enhancer --source-paths {face_image} --target-path {input_video} --output-path {server_output}",
+        "elif [ \"{task_type}\" = \"face_enhancer\" ]; then",
+        "python facefusion.py headless-run --download-providers huggingface --execution-providers cuda --processors face_enhancer --target-path {input_video} --output-path {server_output}",
+        "else",
+        "echo \"请选择任务类型\"",
+        "exit 1",
+        "fi"
       ]
     }
   ],
-  "endpoint": "echo \"{server_output_dir}/result.mp4\""
+  "endpoint": "echo \"{server_output}\""
 }

@@ -76,6 +76,10 @@
           "mkdir -p {model_path}",
           "mkdir {work_dir}",
           "conda install pytorch=2.9.* torchvision -c conda-forge -c pytorch -y",
+          "apt-get update -qq && apt-get install -y -qq libavif-dev libaom-dev libopencv-dev || echo 'Cannot install system libs'",
+          "pip install opencv-python-headless",
+          "pip install pillow-heif --no-binary pillow-heif || pip install pillow-heif",
+          "pip install filetype",
           "pip install transformers",
           "pip install accelerate",
           "pip install git+https://github.com/huggingface/diffusers",
@@ -88,11 +92,16 @@
       "name": "图像编辑",
       "env_name": "Qwen-Image-Edit-2511",
       "commands": [
-        "rm -rf {server_output_dir} && mkdir -p {server_output_dir}",
+        "mkdir -p $(dirname {server_output_file})",
         "cd {work_dir}",
         "cp /tmp/Qwen-Image-Edit-2511_run.py ./run.py",
+        "cp /tmp/Qwen-Image-Edit-2511_preprocess_images.py ./preprocess_images.py",
         "echo '待处理图像：{input_image}'",
-        "python run.py \"{prompt}\" '{input_image}' {server_output_file} {num_inference_steps} 1.0 {seed} {true_cfg_scale} \"{negative_prompt}\" 1"
+        "printf '%s' \"{prompt}\" > /tmp/prompt.txt",
+        "python preprocess_images.py '{input_image}' > /tmp/converted_images.json 2>/tmp/preprocess.log || echo '{input_image}' > /tmp/converted_images.json",
+        "CONVERTED_IMAGES=$(cat /tmp/converted_images.json)",
+        "echo \"Using images: $CONVERTED_IMAGES\"",
+        "python run.py \"$(cat /tmp/prompt.txt)\" \"$CONVERTED_IMAGES\" {server_output_file} {num_inference_steps} 1.0 {seed} {true_cfg_scale} \"{negative_prompt}\" 1"
       ]
     }
   ],
@@ -101,6 +110,10 @@
     {
       "source_path": "Qwen-Image-Edit-2511/run.py",
       "server_path": "/tmp/Qwen-Image-Edit-2511_run.py"
+    },
+    {
+      "source_path": "Qwen-Image-Edit-2511/preprocess_images.py",
+      "server_path": "/tmp/Qwen-Image-Edit-2511_preprocess_images.py"
     }
   ]
 }

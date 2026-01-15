@@ -28,9 +28,19 @@
         "y": 70.54644291366907
       },
       {
+        "task_name": "视频人脸处理-FaceFusion",
+        "x": 695.2474527882257,
+        "y": 410.01077414627423
+      },
+      {
+        "task_name": "视频人物唇形同步-LatentSync",
+        "x": 670.2148767229596,
+        "y": 722.5565689999983
+      },
+      {
         "task_name": "视频高清放大",
-        "x": 888.2830759101178,
-        "y": 579.2641237395791
+        "x": 1010.6830759101177,
+        "y": 600.8641237395791
       },
       {
         "task_name": "生成视频字幕",
@@ -150,7 +160,7 @@
           },
           {
             "input_value_type": "DEFAULT_VALUE",
-            "value": "你是一个广告助手，提取产品说明中涉及的主要产品信息，编写一段50个字的广告文案，使用一行文字，注意必须精确满足要求的字数。",
+            "value": "你是一个广告助手，基于用户提供的场景信息，提起其中涉及到的主要产品资料（强调，只提取产品资料），编写一段100个字的产品广告文案，使用一行文字，注意必须精确满足要求的字数。强调：必须是一百个字。",
             "field_name": "system_prompt"
           },
           {
@@ -278,6 +288,51 @@
       }
     },
     {
+      "cooperation_id": "facefusion_step1",
+      "env_name": "1556e366",
+      "name": "视频人脸处理-FaceFusion",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://Qwen-Image-Edit-2511_step1",
+            "field_name": "face_image"
+          },
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://Wan2.2-S2V-14B_step1",
+            "field_name": "input_video"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "face_swapper",
+            "field_name": "task_type"
+          }
+        ],
+        "app_id": "facefusion"
+      }
+    },
+    {
+      "cooperation_id": "LatentSync_step1",
+      "env_name": "1556e366",
+      "name": "视频人物唇形同步-LatentSync",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "NODE_OUTPUT",
+            "value": "endpoint://facefusion_step1",
+            "field_name": "video"
+          },
+          {
+            "input_value_type": "EMPTY_VALUE",
+            "value": "",
+            "field_name": "audio"
+          }
+        ],
+        "app_id": "LatentSync"
+      }
+    },
+    {
       "cooperation_id": "video-High-Quality_step1",
       "env_name": "1556e366",
       "name": "视频高清放大",
@@ -285,7 +340,7 @@
         "inputs": [
           {
             "input_value_type": "NODE_OUTPUT",
-            "value": "endpoint://Wan2.2-S2V-14B_step1",
+            "value": "endpoint://LatentSync_step1",
             "field_name": "video_file"
           },
           {
@@ -347,6 +402,11 @@
             "input_value_type": "DEFAULT_VALUE",
             "value": "20",
             "field_name": "subtitle_margin_v"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "small",
+            "field_name": "subtitle_font_size"
           }
         ],
         "app_id": "whisper"
