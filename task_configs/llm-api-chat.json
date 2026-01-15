@@ -39,6 +39,18 @@
       ]
     },
     {
+      "label": "思考模式",
+      "field_name": "thinking",
+      "type": "select",
+      "default_value": "disabled",
+      "editable": true,
+      "required": true,
+      "options": [
+        { "label": "关闭", "value": "disabled" },
+        { "label": "开启", "value": "enabled" }
+      ]
+    },
+    {
       "label": "系统提示词（可选，用于设定AI角色或行为约束）",
       "field_name": "system_prompt",
       "type": "textarea",
@@ -134,7 +146,8 @@
         "    ],",
         "    \"stream\": stream,",
         "    \"temperature\": temperature,",
-        "    \"max_tokens\": max_tokens",
+        "    \"max_tokens\": max_tokens,",
+        "    \"thinking\": {\"type\": \"{thinking}\"}",
         "}",
         "",
         "# 如果启用JSON格式输出",

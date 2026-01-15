@@ -1,32 +1,21 @@
 {
   "endpoint": "echo \"/tmp/InspireMusic_results\"",
-  "image":{
-    "label":"商品讲解视频生成",
-    "value":"image.ppinfra.com/prod-snpjnwfwpgoffjmsmhwc/9b3cb281d93ff17443f1bbf2248a4577:v1.0"
-  },
   "metadata": {
-    "user_input_positions": [
-      {
-        "x": 353.2,
-        "y": 256.4,
-        "field_name": "input_acce6aa9"
-      },
-      {
-        "x": 25.600000000000023,
-        "y": 485.6,
-        "field_name": "input_970305f8"
-      }
-    ],
+    "user_input_positions": [{
+      "x": 7.199999999999989,
+      "y": 237.5999999999999,
+      "field_name": "input_970305f8"
+    }],
     "app_node_positions": [
-      {
-        "task_name": "创建视频首图",
-        "x": 27.767323395043235,
-        "y": 96.84765716085482
-      },
       {
         "task_name": "生成广告文案",
         "x": 20.76460443727683,
         "y": 600.3568989893033
+      },
+      {
+        "task_name": "创建视频首图",
+        "x": 330.16732339504324,
+        "y": 70.44765716085485
       },
       {
         "task_name": "生成语音",
@@ -60,16 +49,8 @@
   "inputs": [
     {
       "editable": true,
-      "default_value": "100",
-      "label": "生成广告文案字数",
-      "type": "text",
-      "required": true,
-      "field_name": "input_acce6aa9"
-    },
-    {
-      "editable": true,
-      "default_value": "",
-      "label": "产品说明",
+      "default_value": "美女正在介绍黄金奇异果",
+      "label": "场景描述",
       "type": "text",
       "required": true,
       "field_name": "input_970305f8"
@@ -129,14 +110,6 @@
       "field_name": "Qwen-Image-Edit-2511.input_image"
     },
     {
-      "editable": true,
-      "default_value": "请将这张图片的背景替换为大海",
-      "label": "提示词(描述编辑要求)",
-      "type": "textarea",
-      "required": true,
-      "field_name": "Qwen-Image-Edit-2511.prompt"
-    },
-    {
       "file_extensions": ["mp4"],
       "editable": true,
       "default_value": "",
@@ -150,14 +123,64 @@
   "name": "商品讲解视频生成-单场景",
   "batch": [
     {
+      "cooperation_id": "llm-api-chat_step1",
+      "env_name": "1556e366",
+      "name": "生成广告文案",
+      "cooperation": {
+        "inputs": [
+          {
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "{input_970305f8}",
+            "field_name": "prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "false",
+            "field_name": "stream"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "auto",
+            "field_name": "response_format"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "disabled",
+            "field_name": "thinking"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "你是一个广告助手，提取产品说明中涉及的主要产品信息，编写一段50个字的广告文案，使用一行文字，注意必须精确满足要求的字数。",
+            "field_name": "system_prompt"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "glm-4.7",
+            "field_name": "model"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "0.7",
+            "field_name": "temperature"
+          },
+          {
+            "input_value_type": "DEFAULT_VALUE",
+            "value": "2048",
+            "field_name": "max_tokens"
+          }
+        ],
+        "app_id": "llm-api-chat"
+      }
+    },
+    {
       "cooperation_id": "Qwen-Image-Edit-2511_step1",
       "env_name": "1556e366",
       "name": "创建视频首图",
       "cooperation": {
         "inputs": [
           {
-            "input_value_type": "MODEL_USER_INPUT",
-            "value": "{Qwen-Image-Edit-2511.prompt}",
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "{input_970305f8}",
             "field_name": "prompt"
           },
           {
@@ -187,51 +210,6 @@
           }
         ],
         "app_id": "Qwen-Image-Edit-2511"
-      }
-    },
-    {
-      "cooperation_id": "llm-api-chat_step1",
-      "env_name": "1556e366",
-      "name": "生成广告文案",
-      "cooperation": {
-        "inputs": [
-          {
-            "input_value_type": "CUSTOM_USER_INPUT",
-            "value": "{input_970305f8}",
-            "field_name": "prompt"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "false",
-            "field_name": "stream"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "auto",
-            "field_name": "response_format"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "你是一个广告助手，基于用户提供的产品信息设计一段{input_acce6aa9}字的广告文案，使用一行文字。",
-            "field_name": "system_prompt"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "glm-4.7",
-            "field_name": "model"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "0.7",
-            "field_name": "temperature"
-          },
-          {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "2048",
-            "field_name": "max_tokens"
-          }
-        ],
-        "app_id": "llm-api-chat"
       }
     },
     {
@@ -271,8 +249,8 @@
       "cooperation": {
         "inputs": [
           {
-            "input_value_type": "DEFAULT_VALUE",
-            "value": "生成一个商品广告宣传片",
+            "input_value_type": "CUSTOM_USER_INPUT",
+            "value": "{input_970305f8}",
             "field_name": "prompt"
           },
           {
@@ -407,7 +385,7 @@
           },
           {
             "input_value_type": "DEFAULT_VALUE",
-            "value": "30",
+            "value": "60",
             "field_name": "time_end"
           },
           {
@@ -417,7 +395,7 @@
           },
           {
             "input_value_type": "DEFAULT_VALUE",
-            "value": "30",
+            "value": "60",
             "field_name": "max_generate_audio_seconds"
           },
           {
@@ -445,7 +423,7 @@
       }
     }
   ],
-  "description": "",
+  "description": "这是一个完整的商品讲解视频生成工作流，提供场景说明和相关图片素材，即可生成专业的电商商品营销视频。\n适用场景： 电商产品宣传视频制作、 社交媒体营销内容生成、快速制作产品演示视频、自动化视频广告生产",
   "app_id": "1556e366",
   "email": "",
   "homepage": ""

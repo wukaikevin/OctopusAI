@@ -172,6 +172,13 @@
   ],
   "batch": [
     {
+      "name":"清理目录",
+      "env_name": "InspireMusic-1.5B-Long",
+      "commands":[
+        "rm -rf {server_output}/*"
+      ]
+    },
+    {
       "cooperation_id": "llm-api-chat_step1",
       "env_name": "InspireMusic-1.5B-Long",
       "name": "提示词扩展",
