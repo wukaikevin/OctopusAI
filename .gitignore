@@ -1,0 +1,54 @@
+# 日志文件
+*.log
+error.log
+
+# 配置文件（可能包含敏感信息）
+*.properties
+ai_video_config.properties
+
+# 历史记录和临时文件
+history/
+results/
+task_configs/
+
+# JDK 和 SDK（不需要提交）
+jdk-*/
+javafx-sdk-*/
+jxbrowser/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE 文件
+.idea/
+.vscode/
+*.iml
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Mac OS 特定文件
+.AppleDouble
+.LSOverride
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+._*
+
+# Mac OS 应用程序包（用户可在本地生成）
+*.app/
+icon_temp/
+*.icns
