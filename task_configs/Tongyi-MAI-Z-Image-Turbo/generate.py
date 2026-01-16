@@ -16,7 +16,10 @@ def generate_images(args):
         low_cpu_mem_usage=False,
     )
     pipe.to("cuda")
-    pipe.transformer.set_attention_backend("flash")
+    # 完全禁用 flash-attention，因为 Z-Image-Turbo 需要使用 attention mask
+    # flash-attn 2 不支持 attention mask，会导致生成时出错
+    # 使用默认 backend（通常是 SDPA），性能已经足够好
+    # pipe.transformer.set_attention_backend("flash")  # 已禁用
     print("模型初始化完成！")
     
     # 创建输出目录（如果不存在）
