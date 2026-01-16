@@ -157,5 +157,5 @@
       "server_path": "/tmp/Tongyi-MAI-Z-Image-Turbo-generate.py"
     }
   ],
-  "endpoint": "echo \"{server_output_dir}\""
+  "endpoint": "find {server_output_dir} -name \"*.png\" -type f | head -n 1"
 }
